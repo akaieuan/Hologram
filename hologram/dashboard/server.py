@@ -252,6 +252,10 @@ class Handler(BaseHTTPRequestHandler):
             q = parse_qs(parsed.query)
             self._inspect(q.get("path", [""])[0])
             return
+        if path == "/api/checks":
+            q = parse_qs(parsed.query)
+            self._checks(q.get("path", [""])[0])
+            return
         if path == "/api/glb":
             q = parse_qs(parsed.query)
             self._glb(q.get("path", [""])[0])
@@ -277,6 +281,29 @@ class Handler(BaseHTTPRequestHandler):
             data = load_asset(str(resolved)).to_dict()
             data["path"] = self.cfg.rel(resolved)
             self._send_json(data)
+        except Exception as e:
+            self._send_json({"error": f"{type(e).__name__}: {e}", "path": self.cfg.rel(resolved)}, status=500)
+
+    def _checks(self, p: str) -> None:
+        """Run the built-in + project checks against one asset. Reuses the
+        resolve_asset containment boundary. Project checks are loaded lazily
+        here (in this local dashboard process), never by the MCP server."""
+        if not p:
+            self._send_json({"error": "missing ?path="}, status=400)
+            return
+        resolved = self.cfg.resolve_asset(p)
+        if resolved is None:
+            self._send_json({"error": "asset not found within project", "path": p}, status=404)
+            return
+        try:
+            from ..checks import all_checks, run_asset
+            checks, load_error = all_checks(self.cfg)
+            asset = load_asset(str(resolved))
+            self._send_json({
+                "path": self.cfg.rel(resolved),
+                "findings": [f.to_dict() for f in run_asset(asset, checks)],
+                "load_error": load_error,
+            })
         except Exception as e:
             self._send_json({"error": f"{type(e).__name__}: {e}", "path": self.cfg.rel(resolved)}, status=500)
 

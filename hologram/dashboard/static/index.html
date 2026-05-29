@@ -24,6 +24,7 @@
 <body>
 
   <header class="top">
+    <div class="top-inner">
     <div class="brand">
       <span class="logo">◇</span>
       <span class="title">hologram</span>
@@ -35,12 +36,19 @@
       <button class="tab" data-view="debug" role="tab" id="tab-debug" aria-controls="view-debug" aria-selected="false">Debug</button>
     </nav>
     <div class="status">
-      <span class="live-dot" id="live-dot"></span>
-      <span id="live-label">connecting</span>
+      <div class="live-wrap">
+        <button id="live-trigger" class="live-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="live-pop">
+          <span class="live-dot" id="live-dot"></span>
+          <span id="live-label">connecting</span>
+          <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div id="live-pop" class="live-pop" role="dialog" aria-label="Live status" hidden></div>
+      </div>
       <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle light/dark theme" title="Toggle theme">
         <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
       </button>
+    </div>
     </div>
   </header>
 
@@ -76,11 +84,18 @@
 
   <!-- ASSETS -->
   <main id="view-assets" class="view" role="tabpanel" aria-labelledby="tab-assets" tabindex="0">
-    <div class="filter-row">
-      <input type="search" id="asset-filter" class="input" placeholder="filter by name…" />
-      <select id="cat-filter" class="input"><option value="">all categories</option></select>
+    <div class="visualizer">
+      <aside class="asset-list" aria-label="Assets">
+        <div class="asset-list-filter">
+          <input type="search" id="asset-filter" class="input" placeholder="filter…" />
+          <select id="cat-filter" class="input"><option value="">all categories</option></select>
+        </div>
+        <div class="asset-list-scroll" id="asset-list-scroll"></div>
+      </aside>
+      <section class="asset-stage" id="asset-stage">
+        <div class="stage-empty muted">Select an asset to preview.</div>
+      </section>
     </div>
-    <div id="assets" class="assets-grid"></div>
   </main>
 
   <!-- DEBUG -->
@@ -101,15 +116,6 @@
       <pre id="debug-events" class="debug-pre">—</pre>
     </div>
   </main>
-
-  <!-- Detail drawer -->
-  <aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true">
-    <div class="drawer-head">
-      <h3 id="drawer-title">Details</h3>
-      <button id="drawer-close" class="btn ghost">close</button>
-    </div>
-    <div id="drawer-body"></div>
-  </aside>
 
   <div id="toast" class="toast"></div>
   <script src="/static/app.js"></script>

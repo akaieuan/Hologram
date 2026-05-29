@@ -82,6 +82,15 @@ def humanize(ev: dict) -> tuple[str, str]:
     if t == "skill_invoke":
         args = f" {ev['args']}" if ev.get("args") else ""
         return f"ran /{ev.get('skill', '?')}{args}", ""
+    if t == "check_run":
+        bits = [f"{ev.get('assets', 0)} assets"]
+        if ev.get("errors"):
+            bits.append(f"{ev['errors']} errors")
+        if ev.get("warnings"):
+            bits.append(f"{ev['warnings']} warnings")
+        if not ev.get("errors") and not ev.get("warnings"):
+            bits.append("all clean")
+        return "ran checks", ", ".join(bits)
 
     failed = ev.get("failed") is True
     if ev.get("mcp_tool"):

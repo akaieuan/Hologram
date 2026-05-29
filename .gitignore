@@ -12,8 +12,10 @@ dist/
 venv/
 env/
 
-# Hologram runtime
-.hologram/
+# Hologram runtime: ignore the event log, but keep authored checks under
+# version control (checks.py is source; events.jsonl is a runtime artifact).
+**/.hologram/*
+!**/.hologram/checks.py
 
 # OS / editor
 .DS_Store

@@ -67,6 +67,95 @@ def _init(directory: str, force: bool = False) -> int:
     return 0
 
 
+CHECKS_TEMPLATE = '''\
+"""Project checks for hologram — read-only assertions over each exported asset.
+
+Run them with `hologram check` (also shown per-asset in the dashboard). Each
+function receives an `asset` (a hologram.gltf.Asset: .nodes, .roots, .materials,
+.animations, .skins, .mesh_names, .stem, helpers like .top_level_node_names()).
+
+Return None or True to pass; return warn("...") or fail("...") to flag a problem.
+These run only in your own `hologram check` and local dashboard — never in the
+MCP server. They cannot modify anything.
+"""
+
+from hologram.checks import check, warn, fail
+
+
+@check("texture-friendly name")
+def lowercase_stem(asset):
+    if asset.stem != asset.stem.lower():
+        return warn(f"'{asset.stem}' has uppercase — prefer lowercase asset names")
+
+
+# @check("single root node", severity="error")
+# def one_root(asset):
+#     if len(asset.roots) > 1:
+#         return fail(f"{len(asset.roots)} roots — expected a single rig root")
+'''
+
+
+def format_check_report(report: dict, color: bool = True) -> str:
+    """Render a `run_project` report as a terminal block. Pure — deterministic
+    for a given report, so it is unit-tested with color disabled."""
+    from .watch import RED, GREEN, YELLOW, DIM, RESET
+
+    def paint(text: str, code: str) -> str:
+        return f"{code}{text}{RESET}" if color and code else text
+
+    def plural(n: int, word: str) -> str:
+        return f"{n} {word}{'' if n == 1 else 's'}"
+
+    s = report["summary"]
+    lines = [paint(f"{plural(s['checks'], 'check')} · {plural(s['assets'], 'asset')}", DIM), ""]
+
+    for r in report["results"]:
+        problems = r["findings"]
+        has_err = any(f["severity"] == "error" for f in problems)
+        mark = paint("✗", RED) if has_err else (paint("⚠", YELLOW) if problems else paint("✓", GREEN))
+        label = f"{r['category']}/{r['asset']}" if r.get("category") else r["asset"]
+        lines.append(f"  {mark} {label}")
+        for f in problems:
+            err = f["severity"] == "error"
+            lines.append(paint(f"      {'✗' if err else '⚠'} {f['check']} · {f['message']}",
+                               RED if err else YELLOW))
+
+    summary = f"{s['clean']} clean · {plural(s['warnings'], 'warning')} · {plural(s['errors'], 'error')}"
+    tone = RED if s["errors"] else (YELLOW if s["warnings"] else GREEN)
+    lines += ["", "  " + paint(summary, tone)]
+    if report.get("load_error"):
+        lines.append(paint(f"  ! checks file failed to load: {report['load_error']}", RED))
+    return "\n".join(lines)
+
+
+def _check(project: str | None, as_json: bool, do_init: bool) -> int:
+    import sys
+
+    from . import checks as checks_mod
+    from .config import load_config
+
+    cfg = load_config(project)
+    if do_init:
+        dest = checks_mod.project_checks_path(cfg)
+        if dest.exists():
+            print(f"hologram check: {cfg.rel(dest)} already exists — edit it directly.")
+            return 0
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(CHECKS_TEMPLATE, encoding="utf-8")
+        print(f"hologram check: wrote {cfg.rel(dest)}")
+        print("Edit it, then run `hologram check`.")
+        return 0
+
+    report = checks_mod.run_project(cfg, emit=True)
+    if as_json:
+        import json
+        print(json.dumps(report, indent=2))
+    else:
+        print(f"hologram check · {cfg.name}")
+        print(format_check_report(report, color=bool(getattr(sys.stdout, "isatty", lambda: False)())))
+    return 1 if report["summary"]["errors"] else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="hologram",
@@ -87,6 +176,11 @@ def main(argv: list[str] | None = None) -> int:
     p_watch.add_argument("--limit", type=int, default=20, help="Recent events to backfill before streaming (default: 20).")
     p_watch.add_argument("--interval", type=float, default=1.0, help="Poll interval in seconds (default: 1.0).")
     p_watch.add_argument("--no-color", action="store_true", help="Disable ANSI color (auto-off when piped).")
+
+    p_check = sub.add_parser("check", help="Run read-only checks over the exported assets.")
+    p_check.add_argument("--project", default=None, help="Project root (default: cwd / nearest hologram.toml).")
+    p_check.add_argument("--json", action="store_true", dest="as_json", help="Emit a machine-readable JSON report.")
+    p_check.add_argument("--init", action="store_true", help="Scaffold .hologram/checks.py and exit.")
 
     p_init = sub.add_parser("init", help="Scaffold hologram.toml + .mcp.json in a project.")
     p_init.add_argument("directory", nargs="?", default=".", help="Target directory (default: cwd).")
@@ -110,6 +204,8 @@ def main(argv: list[str] | None = None) -> int:
             interval=args.interval,
             color=False if args.no_color else None,
         )
+    if args.command == "check":
+        return _check(args.project, args.as_json, args.init)
     if args.command == "init":
         return _init(args.directory, force=args.force)
 
