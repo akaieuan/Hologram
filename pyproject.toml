@@ -1,6 +1,6 @@
 [project]
 name = "hologram"
-version = "0.1.0"
+version = "0.4.0"
 description = "Live observability and an agent (MCP) surface for Blender -> glTF asset pipelines."
 readme = "README.md"
 requires-python = ">=3.10"
