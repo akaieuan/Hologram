@@ -91,6 +91,18 @@ def humanize(ev: dict) -> tuple[str, str]:
         if not ev.get("errors") and not ev.get("warnings"):
             bits.append("all clean")
         return "ran checks", ", ".join(bits)
+    if t == "asset_diff":
+        bits = []
+        for fieldname, names in (ev.get("gained") or {}).items():
+            bits.append(f"+{len(names)} {fieldname}")
+        for fieldname, names in (ev.get("lost") or {}).items():
+            bits.append(f"-{len(names)} {fieldname}")
+        if not bits:
+            for cname, delta in (ev.get("changed") or {}).items():
+                bits.append(f"{cname} {delta.get('from')}->{delta.get('to')}")
+        path = ev.get("path") or ""
+        target = f"{path} · {', '.join(bits)}" if (path and bits) else (path or ", ".join(bits))
+        return "asset changed", target
 
     failed = ev.get("failed") is True
     if ev.get("mcp_tool"):

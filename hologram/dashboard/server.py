@@ -20,7 +20,6 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
-import socket
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -28,7 +27,7 @@ from pathlib import Path
 from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
 
-from .. import __version__, events
+from .. import __version__, blender, events
 from ..config import Config, load_config
 from ..gltf import load_asset
 
@@ -160,23 +159,9 @@ def compute_active(cfg: Config, window_seconds: float = 600.0) -> dict:
 
 def probe_blender_mcp(timeout: float = 0.3) -> dict:
     """TCP-probe the Blender MCP add-on socket. A successful connect means the
-    add-on is listening inside Blender."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(timeout)
-    err: Optional[str] = None
-    on = False
-    try:
-        s.connect((BLENDER_MCP_HOST, BLENDER_MCP_PORT))
-        on = True
-    except Exception as e:
-        err = type(e).__name__
-    finally:
-        try:
-            s.close()
-        except Exception:
-            pass
-    return {"on": on, "host": BLENDER_MCP_HOST, "port": BLENDER_MCP_PORT,
-            "checked_at": time.time(), "error": err}
+    add-on is listening inside Blender. Delegates to the shared `blender` client
+    so the dashboard and the MCP server speak one socket protocol."""
+    return blender.probe(BLENDER_MCP_HOST, BLENDER_MCP_PORT, timeout)
 
 
 # ── HTTP handler ────────────────────────────────────────────────────────────────
@@ -278,8 +263,18 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"error": "asset not found within project", "path": p}, status=404)
             return
         try:
-            data = load_asset(str(resolved)).to_dict()
+            asset = load_asset(str(resolved))
+            data = asset.to_dict()
             data["path"] = self.cfg.rel(resolved)
+            # Read-only regression diff against the last `hologram check`
+            # baseline. We read the snapshot but never write it, so this GET
+            # stays side-effect-free (the checkpoint is an explicit check run).
+            from ..diff import diff as compute_diff, load_snapshot, summarize
+            prev = load_snapshot(self.cfg, resolved)
+            if prev:
+                changes = compute_diff(prev, summarize(asset))
+                if changes and not changes.get("first_seen"):
+                    data["diff"] = changes
             self._send_json(data)
         except Exception as e:
             self._send_json({"error": f"{type(e).__name__}: {e}", "path": self.cfg.rel(resolved)}, status=500)

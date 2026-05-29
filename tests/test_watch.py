@@ -29,6 +29,29 @@ def test_humanize_mcp_strips_prefix_and_joins_params():
     assert target == "path=weapons/sword.glb"
 
 
+def test_humanize_asset_diff_summarizes_changes():
+    action, target = watch.humanize({
+        "type": "asset_diff",
+        "path": "export/gltf/weapons/sword.glb",
+        "gained": {"materials": ["steel", "wood"]},
+        "lost": {"animations": ["Bob"]},
+        "changed": {},
+    })
+    assert action == "asset changed"
+    assert target.startswith("export/gltf/weapons/sword.glb · ")
+    assert "+2 materials" in target
+    assert "-1 animations" in target
+
+
+def test_humanize_asset_diff_count_only_fallback():
+    # When there are no name-level changes, fall back to the count delta.
+    _, target = watch.humanize({
+        "type": "asset_diff", "path": "a.glb",
+        "gained": {}, "lost": {}, "changed": {"skins": {"from": 0, "to": 1}},
+    })
+    assert "skins 0->1" in target
+
+
 def test_should_show_hides_pre_tool_but_keeps_skill_and_post():
     assert watch.should_show({"phase": "pre", "type": "tool_use"}) is False
     assert watch.should_show({"phase": "pre", "type": "skill_invoke"}) is True

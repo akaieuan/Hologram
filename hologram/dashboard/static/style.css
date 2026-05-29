@@ -956,6 +956,34 @@ select.input { cursor: pointer; }
 .checks-ok { font-size: var(--text-sm); color: var(--muted-foreground); padding: var(--space-2) 0 var(--space-3); }
 .checks-ok .ok-mark { color: var(--good); font-weight: 600; }
 
+/* ── Asset diff: "changes since last check" ──────────────────────────────
+   A quiet change log under a hairline — the sign carries the colour, the
+   field label sits in foreground, the names recede into muted. */
+.diff-block {
+  margin-bottom: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.diff-head {
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  margin-bottom: var(--space-2);
+}
+.diff-row {
+  font-family: var(--mono);
+  font-size: var(--text-sm);
+  padding: var(--space-1) 0;
+  color: var(--muted-foreground);
+  word-break: break-word;
+}
+.diff-row b { color: var(--foreground); font-weight: 600; }
+.diff-row .diff-sign { font-weight: 700; margin-right: 2px; }
+.diff-row.gained .diff-sign { color: var(--good); }
+.diff-row.lost .diff-sign { color: var(--bad); }
+.diff-row.changed b { color: var(--warn); }
+
 /* ── Buttons ─────────────────────────────────────────────────────────── */
 
 .btn {

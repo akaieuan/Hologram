@@ -85,6 +85,15 @@ function humanize(ev) {
     if (!ev.errors && !ev.warnings) bits.push("all clean");
     return { text: "ran checks", sub: bits.join(" · ") };
   }
+  if (ev.type === "asset_diff") {
+    const bits = [];
+    for (const [field, names] of Object.entries(ev.gained || {})) bits.push(`+${names.length} ${field}`);
+    for (const [field, names] of Object.entries(ev.lost || {})) bits.push(`-${names.length} ${field}`);
+    if (!bits.length) for (const [name, d] of Object.entries(ev.changed || {})) bits.push(`${name} ${d.from}→${d.to}`);
+    const summary = bits.join(", ");
+    const sub = ev.path && summary ? `${ev.path} · ${summary}` : (ev.path || summary);
+    return { text: "asset changed", sub };
+  }
   const failed = ev.failed === true;
   if (ev.mcp_tool) {
     const short = ev.mcp_tool.replace(/^mcp__/, "");
@@ -424,8 +433,25 @@ function renderStage(cat, entry) {
       det.innerHTML = `<div class="finding err"><div class="msg">${esc(d.error)}</div></div>`;
       return;
     }
-    det.innerHTML = checksHtml(c) + inspectHtml(d);
+    det.innerHTML = checksHtml(c) + diffHtml(d) + inspectHtml(d);
   });
+}
+
+// "Changes since last check" — present only when /api/inspect attached a diff
+// (the asset's fingerprint moved since the last `hologram check` baseline).
+// Reads d.diff; never triggers a baseline write.
+function diffHtml(d) {
+  const dd = d && d.diff;
+  if (!dd) return "";
+  const rows = [];
+  for (const [field, names] of Object.entries(dd.gained || {}))
+    rows.push(`<div class="diff-row gained"><span class="diff-sign">+</span><b>${esc(field)}</b> · ${esc(names.join(", "))}</div>`);
+  for (const [field, names] of Object.entries(dd.lost || {}))
+    rows.push(`<div class="diff-row lost"><span class="diff-sign">−</span><b>${esc(field)}</b> · ${esc(names.join(", "))}</div>`);
+  for (const [name, delta] of Object.entries(dd.changed || {}))
+    rows.push(`<div class="diff-row changed"><b>${esc(name)}</b> · ${esc(String(delta.from))} → ${esc(String(delta.to))}</div>`);
+  if (!rows.length) return "";
+  return `<div class="diff-block"><div class="diff-head">changes since last check</div>${rows.join("")}</div>`;
 }
 
 // Verdicts from /api/checks: problems rendered as .finding rows (reusing the

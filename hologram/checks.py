@@ -241,7 +241,13 @@ def run_project(cfg: Config, *, emit: bool = False) -> dict:
     Pure aside from the optional ``check_run`` event: the CLI passes
     ``emit=True`` (an intentional, user-initiated run), while the dashboard does
     not, so passive polling never spams the log.
+
+    When ``emit=True`` this is also the *checkpoint* for regression diffing: each
+    asset's fingerprint is snapshotted (refreshing the diff baseline) and an
+    ``asset_diff`` event is emitted when it changed since the last check. With
+    ``emit=False`` the run stays fully pure — no snapshot writes, no events.
     """
+    from . import diff as diff_mod
     from . import events
 
     checks, load_error = all_checks(cfg)
@@ -271,6 +277,22 @@ def run_project(cfg: Config, *, emit: bool = False) -> dict:
                 "ok": not problems,
                 "findings": [f.to_dict() for f in problems],
             })
+
+            # Checkpoint: refresh the diff baseline and report what changed.
+            # Gated on emit so passive callers stay read-only (no snapshot writes).
+            if emit:
+                summary_now = diff_mod.summarize(asset)
+                prev = diff_mod.load_snapshot(cfg, p)
+                changes = diff_mod.diff(prev, summary_now)
+                diff_mod.save_snapshot(cfg, p, summary_now)
+                if changes and not changes.get("first_seen"):
+                    events.append(
+                        cfg.events_log, "asset_diff",
+                        path=cfg.rel(p),
+                        lost=changes.get("lost", {}),
+                        gained=changes.get("gained", {}),
+                        changed=changes.get("changed", {}),
+                    )
 
     summary = {
         "assets": n_assets,
