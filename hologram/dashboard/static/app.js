@@ -16,10 +16,11 @@ const state = {
 // ── Helpers ──────────────────────────────────────────────────────────
 
 function sessionColor(sid) {
-  if (!sid) return { hex: "#6a7280" };
+  // Darker, low-saturation hues so session tags stay legible on light paper.
+  if (!sid) return { hex: "#5b626b" };
   let h = 0;
   for (let i = 0; i < sid.length; i++) h = (h * 31 + sid.charCodeAt(i)) >>> 0;
-  return { hex: `hsl(${h % 360}, 62%, 66%)` };
+  return { hex: `hsl(${h % 360}, 45%, 42%)` };
 }
 function shortSid(sid) {
   if (!sid) return "—";
@@ -242,6 +243,7 @@ async function openAssetDrawer(category, entry) {
   }
 }
 $("#drawer-close").addEventListener("click", () => $("#drawer").classList.remove("open"));
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("#drawer").classList.remove("open"); });
 
 // ── Debug ───────────────────────────────────────────────────────────
 
