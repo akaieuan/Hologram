@@ -38,8 +38,8 @@ DEFAULT_MCP_JSON = """\
 {
   "mcpServers": {
     "hologram": {
-      "command": "hologram",
-      "args": ["mcp"]
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/akaieuan/Hologram", "hologram", "mcp"]
     }
   }
 }
@@ -63,7 +63,7 @@ def _init(directory: str, force: bool = False) -> int:
         print(f"hologram init: wrote {', '.join(wrote)} in {root}")
     if skipped:
         print(f"hologram init: skipped existing {', '.join(skipped)} (use --force to overwrite)")
-    print("Next: `hologram dashboard` to view the pipeline, or register .mcp.json with Claude Code.")
+    print("Next: `hologram dashboard` to view the pipeline. .mcp.json wires the read-only MCP tools into Claude Code (launched via uvx — no install needed).")
     return 0
 
 

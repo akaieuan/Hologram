@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "hologram": {
-      "command": "hologram",
-      "args": ["mcp"]
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/akaieuan/Hologram", "hologram", "mcp"]
     }
   }
 }

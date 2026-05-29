@@ -66,70 +66,125 @@ else wiring an agent into a Blender → glTF workflow.
 
 ## Requirements
 
-- Python **3.10+**
-- That's it. Blender is optional (only needed if you also run the Blender MCP
-  add-on; Hologram itself never imports `bpy`).
+- [**uv**](https://docs.astral.sh/uv/) — it fetches Hologram (and a matching
+  Python 3.10+) on demand, so there's nothing to install or build. `brew install
+  uv`, or `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+- **Claude Code** — optional, but it's what the plugin (live activity feed + MCP
+  tools) plugs into.
+- **Blender** — optional. Only needed if you also run the Blender MCP add-on;
+  Hologram itself never imports `bpy`.
 
-## Install
+## Run it
+
+No install, no build step — `uv` fetches and runs Hologram on demand, then
+caches it. There are two entry points:
+
+**1 · The dashboard** — point it at any project that has exported GLBs:
+
+```bash
+uvx --from git+https://github.com/akaieuan/Hologram hologram dashboard
+```
+
+It serves **http://127.0.0.1:7870**. (Once Hologram is on PyPI this shortens to
+`uvx hologram dashboard`.)
+
+**2 · The Claude Code plugin** — the live activity feed + MCP tools. Inside
+Claude Code:
+
+```text
+/plugin marketplace add akaieuan/Hologram
+/plugin install hologram
+```
+
+That wires up two things: the **activity hook** (your agent's edits, shell
+commands, and MCP calls stream into the dashboard) and the three read-only
+**MCP tools**. The MCP server runs through `uvx` too — installing the plugin
+needs no `pip` step.
+
+## How it's delivered
+
+Hologram is three pieces, and each reaches you without a manual install:
+
+| Piece | What it is | How it runs |
+|---|---|---|
+| **Activity hook** | a stdlib-only Claude Code hook logging sessions, shell commands, edits, and MCP calls | bundled in the plugin; runs on your system `python3`, zero dependencies |
+| **MCP server** | three read-only tools over your GLBs | launched by `uvx` straight from this repo — Claude Code starts it per session |
+| **Dashboard** | the live SSE web UI | a server you start with `uvx hologram dashboard` |
+
+`uv` downloads the code (and a matching Python) the first time and caches it, so
+there's no release to download and no environment to maintain. The marketplace
+install wires the hook + MCP in one step.
+
+The dashboard is the one piece you launch yourself — by design. A Claude Code
+plugin contributes hooks, commands, and MCP servers, not long-running web
+servers, so the dashboard stays a `uvx hologram dashboard` you run in a terminal
+when you want eyes on the pipeline. Same UI, same command — only the delivery is
+install-free.
+
+> **Prefer a classic install?** From a clone, `pip install -e .` (or `uv pip
+> install -e .`) still gives you a plain `hologram` command. And publishing to
+> PyPI (`uv build && uv publish`) turns every `uvx --from git+… hologram` here
+> into a tidy `uvx hologram`.
+
+## Try the bundled examples
+
+Want to poke at it with real assets first? Clone the repo and run the dashboard
+against the example project — still no install:
 
 ```bash
 git clone https://github.com/akaieuan/Hologram.git
 cd Hologram
-pip install -e .
-hologram --version          # -> hologram 0.1.0
+uvx --from . hologram dashboard --project examples/minimal
 ```
 
-Every command below is also available as `python -m hologram …` — handy if the
-`hologram` script isn't on your `PATH`.
+Open **http://127.0.0.1:7870** — three sample assets grouped into `lootables`,
+`weapons`, and `props`. Click any asset to introspect its glTF structure; switch
+to **Debug** for copy-pastable JSON state.
 
-## Quickstart (≈1 minute)
-
-A categorized example project ships in the repo. Point the dashboard at it:
-
-```bash
-cd examples/minimal
-hologram dashboard          # serves http://127.0.0.1:7870
-```
-
-Open **http://127.0.0.1:7870**. You'll see three sample assets grouped into
-`lootables`, `weapons`, and `props`. Click any asset to introspect its glTF
-structure. Switch to **Debug** for copy-pastable JSON state.
-
-To watch the live feed do something, append an event to the log:
+To watch the live feed move, append an event to the log:
 
 ```bash
 echo '{"ts": '"$(date +%s)"', "type": "tool_use", "tool": "Bash", "command": "blender --background bake.blend"}' \
-  >> .hologram/events.jsonl
+  >> examples/minimal/.hologram/events.jsonl
 ```
 
-It appears in the **Live** tab within a second.
+It shows up in the **Live** tab within a second.
 
 ## Use it in your own project
 
+From your pipeline's root:
+
 ```bash
-cd /path/to/your/pipeline
-hologram init               # writes hologram.toml + .mcp.json
-hologram dashboard
+uvx --from git+https://github.com/akaieuan/Hologram hologram init
 ```
 
-Edit `hologram.toml` to point `export_root` at wherever your `.glb` files land.
+That writes a `hologram.toml` (edit `export_root` to point at wherever your
+`.glb` files land) plus a `.mcp.json`. Then launch the dashboard the same way:
+
+```bash
+uvx --from git+https://github.com/akaieuan/Hologram hologram dashboard
+```
 
 ## The MCP server
 
-`hologram init` drops a `.mcp.json` that registers the server with Claude Code:
+Installing the plugin wires the MCP server up for you — there's nothing else to
+do. If you'd rather register it by hand (no plugin), `hologram init` drops a
+`.mcp.json` that points Claude Code at the server through `uvx`:
 
 ```json
 {
   "mcpServers": {
     "hologram": {
-      "command": "hologram",
-      "args": ["mcp"]
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/akaieuan/Hologram", "hologram", "mcp"]
     }
   }
 }
 ```
 
-Once registered, an agent gets three tools:
+`uvx` fetches and caches the server on first use, so this needs no `pip` step.
+(Once Hologram is on PyPI the args shorten to just `["hologram", "mcp"]`.) Either
+way, an agent gets three tools:
 
 | Tool | What it does |
 |---|---|
@@ -146,9 +201,16 @@ a generic Claude Code hook (under `hologram/plugin/`) that records session
 lifecycle, shell commands, edits to `.glb` / `.gltf` / `.py` / `.toml` files, and
 `mcp__hologram*` / `mcp__blender*` tool calls — then the dashboard streams them.
 
-Point Claude Code at the bundled plugin (it wires both the hook and the MCP
-server), or copy `hologram/plugin/hooks/log_event.py` into your own hook setup.
-The hook is stdlib-only and writes straight to your configured `events_log`.
+Installing the plugin wires both the hook and the MCP server in one step:
+
+```text
+/plugin marketplace add akaieuan/Hologram
+/plugin install hologram
+```
+
+Or, if you keep your own hook setup, copy `hologram/plugin/hooks/log_event.py`
+into it. The hook is stdlib-only and writes straight to your configured
+`events_log`.
 
 ## Configuration
 
@@ -196,11 +258,12 @@ MCP server   ──┘                                    │
 ## Project layout
 
 ```
+.claude-plugin/marketplace.json   # makes the repo installable via /plugin
 hologram/
   gltf.py  events.py  config.py  cli.py
   dashboard/   server.py + static/{index.html,app.js,style.css}
   mcp/         server.py (list_assets, inspect_asset, tail_events)
-  plugin/      Claude Code hook + plugin manifest
+  plugin/      Claude Code hook + plugin manifest + .mcp.json (uvx)
 examples/
   minimal/      categorized: export/gltf/{lootables,weapons,props}/*.glb
   flat-layout/  no categories: assets/*.glb

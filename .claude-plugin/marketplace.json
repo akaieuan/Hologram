@@ -1,0 +1,23 @@
+{
+  "name": "hologram",
+  "owner": {
+    "name": "Ieuan King",
+    "url": "https://github.com/akaieuan"
+  },
+  "metadata": {
+    "description": "Live observability + a read-only MCP surface for Blender -> glTF pipelines.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "hologram",
+      "source": "./hologram/plugin",
+      "description": "Streams Claude Code activity to the hologram dashboard and exposes read-only glTF asset-inspection tools (list_assets, inspect_asset, tail_events). The MCP server launches via uvx, so installing the plugin needs no pip step.",
+      "version": "0.1.0",
+      "author": { "name": "Ieuan King" },
+      "homepage": "https://github.com/akaieuan/Hologram",
+      "license": "MIT",
+      "keywords": ["blender", "gltf", "glb", "mcp", "observability", "pipeline"]
+    }
+  ]
+}
