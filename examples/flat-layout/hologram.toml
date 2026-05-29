@@ -1,0 +1,14 @@
+# Same dashboard, no taxonomy. Omitting [categories] entirely treats every GLB
+# under export_root as one flat "all" list — this proves the config DSL is
+# generic and not wired to any particular project's folder names.
+
+[project]
+name = "flat-example"
+
+[paths]
+export_root = "assets"
+events_log = ".hologram/events.jsonl"
+
+[dashboard]
+host = "127.0.0.1"
+port = 7871

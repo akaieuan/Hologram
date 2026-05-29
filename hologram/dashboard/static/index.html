@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>hologram</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <header class="top">
+    <div class="brand">
+      <span class="logo">◇</span>
+      <span class="title">hologram</span>
+      <span class="project" id="project-name">—</span>
+    </div>
+    <nav class="tabs">
+      <button class="tab active" data-view="live">Live</button>
+      <button class="tab" data-view="assets">Assets<span class="tab-count" id="tab-assets-count"></span></button>
+      <button class="tab" data-view="debug">Debug</button>
+    </nav>
+    <div class="status">
+      <span class="live-dot" id="live-dot"></span>
+      <span id="live-label">connecting</span>
+    </div>
+  </header>
+
+  <!-- LIVE -->
+  <main id="view-live" class="view active">
+    <div class="summary">
+      <div class="summary-line">
+        <b id="sum-assets">—</b> assets · <b id="sum-cats">—</b> categories
+      </div>
+      <div class="summary-sessions" id="summary-sessions">
+        <span class="muted">no sessions active</span>
+      </div>
+    </div>
+    <section class="feed-section">
+      <h2 class="feed-title">Activity</h2>
+      <div id="feed" class="feed">
+        <div class="feed-empty">
+          <p>No activity yet.</p>
+          <p class="muted">
+            Open a Claude Code chat in this project with the hologram plugin loaded,
+            call the MCP tools, or append to the event log — activity streams here live.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ASSETS -->
+  <main id="view-assets" class="view">
+    <div class="filter-row">
+      <input type="search" id="asset-filter" class="input" placeholder="filter by name…" />
+      <select id="cat-filter" class="input"><option value="">all categories</option></select>
+    </div>
+    <div id="assets" class="assets-grid"></div>
+  </main>
+
+  <!-- DEBUG -->
+  <main id="view-debug" class="view">
+    <p class="muted" style="margin-top: 0">Copy-pastable diagnostics for bug reports or another chat.</p>
+    <div class="debug-block">
+      <div class="debug-head">
+        <span>Pipeline state (JSON)</span>
+        <button class="btn" data-copy-target="#debug-state">copy</button>
+      </div>
+      <pre id="debug-state" class="debug-pre">—</pre>
+    </div>
+    <div class="debug-block">
+      <div class="debug-head">
+        <span>Recent events (JSONL)</span>
+        <button class="btn" data-copy-target="#debug-events">copy</button>
+      </div>
+      <pre id="debug-events" class="debug-pre">—</pre>
+    </div>
+  </main>
+
+  <!-- Detail drawer -->
+  <aside id="drawer" class="drawer">
+    <div class="drawer-head">
+      <h3 id="drawer-title">Details</h3>
+      <button id="drawer-close" class="btn ghost">close</button>
+    </div>
+    <div id="drawer-body"></div>
+  </aside>
+
+  <div id="toast" class="toast"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

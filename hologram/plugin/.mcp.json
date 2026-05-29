@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "hologram": {
+      "command": "hologram",
+      "args": ["mcp"]
+    }
+  }
+}

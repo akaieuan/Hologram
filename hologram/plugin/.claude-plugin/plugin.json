@@ -1,0 +1,14 @@
+{
+  "name": "hologram",
+  "version": "0.1.0",
+  "description": "Live observability + an agent (MCP) surface for Blender -> glTF pipelines. Streams Claude Code activity to the hologram dashboard and exposes read-only asset-inspection tools.",
+  "author": {
+    "name": "Ieuan King"
+  },
+  "homepage": "https://github.com/akaieuan/Hologram",
+  "repository": "https://github.com/akaieuan/Hologram",
+  "license": "MIT",
+  "keywords": ["blender", "gltf", "glb", "mcp", "observability", "pipeline"],
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json"
+}

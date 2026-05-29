@@ -1,0 +1,20 @@
+[project]
+name = "minimal-example"
+
+[paths]
+export_root = "export/gltf"
+events_log = ".hologram/events.jsonl"
+
+[dashboard]
+host = "127.0.0.1"
+port = 7870
+
+# A categorized project: each category is a glob of GLBs relative to export_root.
+[categories.lootables]
+glb_pattern = "lootables/**/*.glb"
+
+[categories.weapons]
+glb_pattern = "weapons/**/*.glb"
+
+[categories.props]
+glb_pattern = "props/**/*.glb"

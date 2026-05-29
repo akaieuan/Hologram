@@ -1,0 +1,1 @@
+"""Hologram MCP server package."""
