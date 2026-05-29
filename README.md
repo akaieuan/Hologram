@@ -26,8 +26,6 @@ parsing.
 > it's producing, and hands that same pipeline to the agent as MCP tools — now
 > including a render so the agent can *see* an export, not just count its nodes.
 
-<!-- ![hologram dashboard](docs/dashboard.png) -->
-
 ---
 
 ## Why I built this
