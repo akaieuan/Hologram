@@ -79,6 +79,9 @@ pip install -e .
 hologram --version          # -> hologram 0.1.0
 ```
 
+Every command below is also available as `python -m hologram …` — handy if the
+`hologram` script isn't on your `PATH`.
+
 ## Quickstart (≈1 minute)
 
 A categorized example project ships in the repo. Point the dashboard at it:
