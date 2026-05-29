@@ -2,6 +2,13 @@
 
 **Live observability + an agent (MCP) surface for Blender → glTF pipelines.**
 
+![status](https://img.shields.io/badge/status-v0.1.0-blue)
+![python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)
+![license](https://img.shields.io/badge/license-MIT-green)
+![MCP](https://img.shields.io/badge/MCP-read--only-6E56CF?logo=anthropic&logoColor=white)
+![Blender](https://img.shields.io/badge/Blender-glTF-F5792A?logo=blender&logoColor=white)
+![build](https://img.shields.io/badge/build-none-success)
+
 Hologram watches a glTF asset pipeline and streams what's happening to a local
 dashboard in real time — including the tool calls your AI coding agent is making
 right now. It also exposes the pipeline to agents through a small, read-only
@@ -19,6 +26,27 @@ JSONL event log, and pure-Python glTF parsing.
 <!-- ![hologram dashboard](docs/dashboard.png) -->
 
 ---
+
+## Why I built this
+
+I build games mostly solo, and the bulk of my asset work runs through Blender
+into glTF — characters, props, weapons, the lot. At some point my AI coding
+agent became a real part of that pipeline: it writes the Blender scripts, runs
+the exports, and rearranges the `.glb` files I ship. That was a huge speed-up,
+right up until I realised I had no real idea what it was *doing*. Assets
+changed, exports appeared, and I'd be scrolling back through a terminal trying
+to reconstruct which step touched which file.
+
+Hologram is what I built to close that gap. It tails a single event log and
+shows the agent's live activity — edits, shell commands, exports — right next
+to the assets those actions produce, in one local dashboard. Then it hands the
+agent that same pipeline back as a few read-only MCP tools, so we end up looking
+at the same picture instead of talking past each other.
+
+It started life as pipeline-specific glue buried inside one game's repo. This is
+the clean-room version: none of that project's code and none of its assumptions
+— just the pattern, pulled out and made generic, in case it's useful to anyone
+else wiring an agent into a Blender → glTF workflow.
 
 ## Features
 
