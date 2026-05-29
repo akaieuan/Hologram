@@ -14,6 +14,12 @@ What it records (nothing else, to keep the feed pipeline-relevant):
   * Bash                       -> the command (truncated)
   * Write / Edit / MultiEdit   -> edits to .glb / .gltf / .py / .toml files
   * mcp__hologram* / mcp__Blender* / mcp__blender* tool calls
+  * PostToolUseFailure         -> the same tools, flagged `failed` with the error
+
+PostToolUse fires only on success; failures arrive as a separate
+PostToolUseFailure event carrying a top-level `error` string, `is_interrupt`,
+and `duration_ms`. Failures reuse the same tool filters as successes so the feed
+stays pipeline-relevant.
 
 Everything else is ignored. The hook always exits 0 and never raises, so a
 logging failure can never block a tool call or break the session.
@@ -40,6 +46,7 @@ MCP_PREFIXES = ("mcp__hologram", "mcp__Blender", "mcp__blender")
 MAX_COMMAND = 1000
 MAX_PARAM_VALUE = 160
 MAX_PARAMS = 8
+MAX_ERROR = 300
 
 
 def find_root(cwd: str | None) -> Path:
@@ -134,7 +141,8 @@ def build_record(payload: dict) -> dict | None:
         return {"type": "skill_invoke", "phase": "pre", "session_id": sid,
                 "skill": skill, "args": args.strip()}
 
-    if event in ("PreToolUse", "PostToolUse"):
+    if event in ("PreToolUse", "PostToolUse", "PostToolUseFailure"):
+        failed = event == "PostToolUseFailure"
         phase = "pre" if event == "PreToolUse" else "post"
         tool = payload.get("tool_name", "")
         ti = payload.get("tool_input") or {}
@@ -142,6 +150,21 @@ def build_record(payload: dict) -> dict | None:
             ti = {}
         base = {"type": "tool_use", "phase": phase, "session_id": sid}
 
+        # duration_ms rides on any post event (success or failure) when present.
+        if phase == "post":
+            dur = payload.get("duration_ms")
+            if isinstance(dur, (int, float)):
+                base["duration_ms"] = int(dur)
+        if failed:
+            base["failed"] = True
+            err = payload.get("error")
+            if err is not None:
+                err = str(err)
+                base["error"] = err if len(err) <= MAX_ERROR else err[:MAX_ERROR] + "…"
+            if payload.get("is_interrupt"):
+                base["is_interrupt"] = True
+
+        # Same tool filters for success and failure, so the feed stays relevant.
         if tool.startswith(MCP_PREFIXES):
             return {**base, "mcp_tool": tool, "params": trim_params(ti)}
         if tool == "Bash":

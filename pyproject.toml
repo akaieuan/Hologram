@@ -38,6 +38,7 @@ include = ["hologram*"]
 [tool.setuptools.package-data]
 hologram = [
   "dashboard/static/*",
+  "dashboard/static/vendor/*",
   "plugin/hooks/*",
   "plugin/.claude-plugin/*",
   "plugin/.mcp.json",

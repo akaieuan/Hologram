@@ -4,6 +4,21 @@
   <meta charset="utf-8" />
   <title>hologram</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>
+    /* Set the theme before first paint — reads the saved choice, else the OS
+     * preference. No flash of the wrong theme, no CSS duplication. */
+    (function () {
+      try {
+        var t = localStorage.getItem("hologram-theme");
+        if (t !== "light" && t !== "dark") {
+          t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
@@ -14,30 +29,36 @@
       <span class="title">hologram</span>
       <span class="project" id="project-name">—</span>
     </div>
-    <nav class="tabs">
-      <button class="tab active" data-view="live">Live</button>
-      <button class="tab" data-view="assets">Assets<span class="tab-count" id="tab-assets-count"></span></button>
-      <button class="tab" data-view="debug">Debug</button>
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button class="tab active" data-view="live" role="tab" id="tab-live" aria-controls="view-live" aria-selected="true">Live</button>
+      <button class="tab" data-view="assets" role="tab" id="tab-assets" aria-controls="view-assets" aria-selected="false">Assets<span class="tab-count" id="tab-assets-count"></span></button>
+      <button class="tab" data-view="debug" role="tab" id="tab-debug" aria-controls="view-debug" aria-selected="false">Debug</button>
     </nav>
     <div class="status">
       <span class="live-dot" id="live-dot"></span>
       <span id="live-label">connecting</span>
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle light/dark theme" title="Toggle theme">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+      </button>
     </div>
   </header>
 
   <!-- LIVE -->
-  <main id="view-live" class="view active">
-    <div class="summary">
-      <div class="summary-line">
-        <b id="sum-assets">—</b> assets · <b id="sum-cats">—</b> categories
-      </div>
-      <div class="summary-sessions" id="summary-sessions">
-        <span class="muted">no sessions active</span>
-      </div>
+  <main id="view-live" class="view active" role="tabpanel" aria-labelledby="tab-live" tabindex="0">
+    <div class="inflight" id="inflight" hidden></div>
+    <div class="stat-band">
+      <div class="stat-cell"><b class="num" id="sum-assets">—</b><span class="label">assets</span></div>
+      <div class="stat-cell"><b class="num" id="sum-cats">—</b><span class="label">categories</span></div>
+      <div class="stat-cell"><b class="num" id="sum-sessions">0</b><span class="label">active</span></div>
+      <div class="stat-cell" id="sum-fails-cell"><b class="num" id="sum-fails">0</b><span class="label">failures</span></div>
+    </div>
+    <div class="meta-row" id="summary-sessions">
+      <span class="muted">no sessions active</span>
     </div>
     <section class="feed-section">
       <h2 class="feed-title">Activity</h2>
-      <div id="feed" class="feed">
+      <div id="feed" class="feed" role="log" aria-live="polite" aria-label="Activity feed">
         <div class="feed-empty">
           <p>No activity yet.</p>
           <p class="muted">
@@ -47,10 +68,14 @@
         </div>
       </div>
     </section>
+    <footer class="colophon">
+      <span class="co-mark"><span class="co-dia">◇</span>hologram</span>
+      <span class="co-meta">local-first · observe-only</span>
+    </footer>
   </main>
 
   <!-- ASSETS -->
-  <main id="view-assets" class="view">
+  <main id="view-assets" class="view" role="tabpanel" aria-labelledby="tab-assets" tabindex="0">
     <div class="filter-row">
       <input type="search" id="asset-filter" class="input" placeholder="filter by name…" />
       <select id="cat-filter" class="input"><option value="">all categories</option></select>
@@ -59,7 +84,7 @@
   </main>
 
   <!-- DEBUG -->
-  <main id="view-debug" class="view">
+  <main id="view-debug" class="view" role="tabpanel" aria-labelledby="tab-debug" tabindex="0">
     <p class="muted" style="margin-top: 0">Copy-pastable diagnostics for bug reports or another chat.</p>
     <div class="debug-block">
       <div class="debug-head">
@@ -78,7 +103,7 @@
   </main>
 
   <!-- Detail drawer -->
-  <aside id="drawer" class="drawer">
+  <aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true">
     <div class="drawer-head">
       <h3 id="drawer-title">Details</h3>
       <button id="drawer-close" class="btn ghost">close</button>

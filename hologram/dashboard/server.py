@@ -252,6 +252,10 @@ class Handler(BaseHTTPRequestHandler):
             q = parse_qs(parsed.query)
             self._inspect(q.get("path", [""])[0])
             return
+        if path == "/api/glb":
+            q = parse_qs(parsed.query)
+            self._glb(q.get("path", [""])[0])
+            return
         if path == "/api/active":
             self._send_json(compute_active(self.cfg))
             return
@@ -275,6 +279,31 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(data)
         except Exception as e:
             self._send_json({"error": f"{type(e).__name__}: {e}", "path": self.cfg.rel(resolved)}, status=500)
+
+    def _glb(self, p: str) -> None:
+        """Stream raw GLB bytes for the web preview. Shares resolve_asset with
+        _inspect, so it cannot escape the project root."""
+        if not p:
+            self.send_error(400, "missing ?path=")
+            return
+        resolved = self.cfg.resolve_asset(p)
+        if resolved is None:
+            self.send_error(404, "asset not found within project")
+            return
+        try:
+            data = resolved.read_bytes()
+        except OSError:
+            self.send_error(404, "unreadable")
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "model/gltf-binary")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        try:
+            self.wfile.write(data)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def _stream_events(self) -> None:
         cfg = self.cfg

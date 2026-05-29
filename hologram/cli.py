@@ -82,6 +82,12 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("mcp", help="Run the MCP server over stdio (launched by Claude Code).")
 
+    p_watch = sub.add_parser("watch", help="Stream the event log to the terminal (no browser).")
+    p_watch.add_argument("--project", default=None, help="Project root (default: cwd / nearest hologram.toml).")
+    p_watch.add_argument("--limit", type=int, default=20, help="Recent events to backfill before streaming (default: 20).")
+    p_watch.add_argument("--interval", type=float, default=1.0, help="Poll interval in seconds (default: 1.0).")
+    p_watch.add_argument("--no-color", action="store_true", help="Disable ANSI color (auto-off when piped).")
+
     p_init = sub.add_parser("init", help="Scaffold hologram.toml + .mcp.json in a project.")
     p_init.add_argument("directory", nargs="?", default=".", help="Target directory (default: cwd).")
     p_init.add_argument("--force", action="store_true", help="Overwrite existing files.")
@@ -94,6 +100,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "mcp":
         from .mcp.server import main as mcp_main
         return mcp_main()
+    if args.command == "watch":
+        from .config import load_config
+        from .watch import run as watch_run
+        cfg = load_config(args.project)
+        return watch_run(
+            cfg,
+            limit=args.limit,
+            interval=args.interval,
+            color=False if args.no_color else None,
+        )
     if args.command == "init":
         return _init(args.directory, force=args.force)
 
