@@ -30,7 +30,7 @@ parsing.
 
 ## Why I built this
 
-I build games mostly solo, and the bulk of my asset work runs through Blender
+I build games with my friend, and the bulk of my asset work runs through Blender
 into glTF — characters, props, weapons, the lot. At some point my AI coding
 agent became a real part of that pipeline: it writes the Blender scripts, runs
 the exports, and rearranges the `.glb` files I ship. That was a huge speed-up,
