@@ -159,7 +159,7 @@ def _check(project: str | None, as_json: bool, do_init: bool) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="hologram",
-        description="Live observability + an agent (MCP) surface for Blender -> glTF pipelines.",
+        description="Live observability, guided skills, and an agent (MCP) surface for Blender -> glTF pipelines.",
     )
     parser.add_argument("--version", action="version", version=f"hologram {__version__}")
     sub = parser.add_subparsers(dest="command")

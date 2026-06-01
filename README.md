@@ -1,8 +1,8 @@
 # ◇ hologram
 
-**Live observability + an agent (MCP) surface for Blender → glTF pipelines.**
+**Live observability, guided skills, and an agent (MCP) surface for Blender → glTF pipelines.**
 
-![status](https://img.shields.io/badge/status-v0.4.0-blue)
+![status](https://img.shields.io/badge/status-v0.5.0-blue)
 ![python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![MCP](https://img.shields.io/badge/MCP-read--only-6E56CF?logo=anthropic&logoColor=white)
@@ -13,7 +13,10 @@ Hologram watches a glTF asset pipeline and streams what's happening to a local
 dashboard in real time — including the tool calls your AI coding agent is making
 right now. It also exposes the pipeline to agents through a small
 [MCP](https://modelcontextprotocol.io) server, so Claude (or any MCP client) can
-enumerate, introspect, **render**, and health-check your exported `.glb` assets.
+enumerate, introspect, **render**, and health-check your exported `.glb` assets —
+and the Claude Code plugin wraps all of it in guided **skills** (`/hologram:start`,
+`inspect`, `check`, `status`, `create-skill`) so you can drive the pipeline in
+plain language.
 
 It stays deliberately **read-only / non-destructive**: it observes, introspects,
 validates, and previews your pipeline — but it never modifies your assets, and
@@ -60,6 +63,9 @@ else wiring an agent into a Blender → glTF workflow.
 - **MCP tool surface** — five read-only tools (`list_assets`, `inspect_asset`,
   `render_asset`, `tail_events`, `pipeline_status`) give an agent structured
   access to your pipeline.
+- **Guided skills** — the plugin bundles five Claude Code skills as a
+  natural-language front door: `/hologram:start` (onboard + launch the dashboard),
+  `inspect`, `check`, `status`, and `create-skill` (scaffold your own).
 - **Agent vision (`render_asset`)** — render a GLB to an image through your live
   Blender, so the agent can *see* an export. Non-destructive (a throwaway scene,
   your scene restored) and degrades to a clear error when Blender isn't running.
@@ -116,10 +122,10 @@ Claude Code:
 /plugin install hologram
 ```
 
-That wires up two things: the **activity hook** (your agent's edits, shell
-commands, and MCP calls stream into the dashboard) and the five read-only
-**MCP tools**. The MCP server runs through `uvx` too — installing the plugin
-needs no `pip` step.
+That wires up three things: the **activity hook** (your agent's edits, shell
+commands, and MCP calls stream into the dashboard), the five read-only
+**MCP tools**, and a set of guided **skills** (`/hologram:start` and friends).
+The MCP server runs through `uvx` too — installing the plugin needs no `pip` step.
 
 ### Commands
 
@@ -131,19 +137,32 @@ needs no `pip` step.
 | `hologram mcp` | Run the MCP server over stdio (Claude Code launches this for you). |
 | `hologram init` | Scaffold `hologram.toml` + `.mcp.json` in a project (`--force`). |
 
+### Skills (Claude Code)
+
+Bundled with the plugin — type `/hologram:` in Claude Code to reach them:
+
+| Skill | What it does |
+|---|---|
+| `/hologram:start` | Onboard: explain Hologram, init the project, launch the dashboard, hand off. |
+| `/hologram:inspect` | Resolve an asset, read its structure, render a preview. |
+| `/hologram:check` | Run the checks, read failures back plainly, help author new ones. |
+| `/hologram:status` | "What's wrong right now" — a log-only catch-up via `pipeline_status`. |
+| `/hologram:create-skill` | Scaffold a new project skill, pre-wired to Hologram's tools. |
+
 ## How it's delivered
 
-Hologram is three pieces, and each reaches you without a manual install:
+Hologram is four pieces, and each reaches you without a manual install:
 
 | Piece | What it is | How it runs |
 |---|---|---|
 | **Activity hook** | a stdlib-only Claude Code hook logging sessions, shell commands, edits, and MCP calls | bundled in the plugin; runs on your system `python3`, zero dependencies |
 | **MCP server** | five read-only tools over your GLBs | launched by `uvx` straight from this repo — Claude Code starts it per session |
+| **Skills** | five guided Claude Code skills (`start`, `inspect`, `check`, `status`, `create-skill`) | bundled in the plugin; auto-discovered, no install |
 | **Dashboard** | the live SSE web UI | a server you start with `uvx hologram dashboard` |
 
 `uv` downloads the code (and a matching Python) the first time and caches it, so
 there's no release to download and no environment to maintain. The marketplace
-install wires the hook + MCP in one step.
+install wires the hook, MCP tools, and skills in one step.
 
 The dashboard is the one piece you launch yourself — by design. A Claude Code
 plugin contributes hooks, commands, and MCP servers, not long-running web
@@ -241,7 +260,7 @@ a generic Claude Code hook (under `hologram/plugin/`) that records session
 lifecycle, shell commands, edits to `.glb` / `.gltf` / `.py` / `.toml` files, and
 `mcp__hologram*` / `mcp__blender*` tool calls — then the dashboard streams them.
 
-Installing the plugin wires both the hook and the MCP server in one step:
+Installing the plugin wires the hook, the MCP server, and the skills in one step:
 
 ```text
 /plugin marketplace add akaieuan/Hologram
@@ -312,6 +331,7 @@ hologram/
   mcp/         server.py (list_assets, inspect_asset, render_asset,
                tail_events, pipeline_status)
   plugin/      Claude Code hook + plugin manifest + .mcp.json (uvx)
+    skills/    start · inspect · check · status · create-skill
 examples/
   minimal/      categorized: export/gltf/{lootables,weapons,props}/*.glb
   flat-layout/  no categories: assets/*.glb
@@ -323,8 +343,9 @@ tests/          pytest suite
 Hologram stays scoped to **observe, introspect, validate, and preview** — all
 read-only / non-destructive. Shipped so far: the live dashboard + MCP surface
 (v0.1), failures + GLB previews + `hologram watch` (v0.2), the read-only checks
-engine + asset visualizer (v0.3), and agent vision + regression diffing +
-`pipeline_status` (v0.4). Still on the table, built on the stable `Asset` API:
+engine + asset visualizer (v0.3), agent vision + regression diffing +
+`pipeline_status` (v0.4), and guided skills as the plugin's front door (v0.5).
+Still on the table, built on the stable `Asset` API:
 an offline/headless render path (no running Blender), render thumbnails on disk,
 asset/scene templates, and export orchestration.
 

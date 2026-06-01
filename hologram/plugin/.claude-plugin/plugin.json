@@ -8,7 +8,7 @@
   "homepage": "https://github.com/akaieuan/Hologram",
   "repository": "https://github.com/akaieuan/Hologram",
   "license": "MIT",
-  "keywords": ["blender", "gltf", "glb", "mcp", "observability", "pipeline"],
+  "keywords": ["blender", "gltf", "glb", "mcp", "observability", "pipeline", "skills"],
   "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json"
 }

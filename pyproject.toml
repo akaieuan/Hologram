@@ -1,13 +1,13 @@
 [project]
 name = "hologram"
 version = "0.5.0"
-description = "Live observability and an agent (MCP) surface for Blender -> glTF asset pipelines."
+description = "Live observability, guided skills, and an agent (MCP) surface for Blender -> glTF asset pipelines."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Ieuan King" }]
-keywords = ["blender", "gltf", "glb", "mcp", "pipeline", "dashboard", "claude-code"]
+keywords = ["blender", "gltf", "glb", "mcp", "pipeline", "dashboard", "claude-code", "skills"]
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
   "Topic :: Multimedia :: Graphics :: 3D Modeling",

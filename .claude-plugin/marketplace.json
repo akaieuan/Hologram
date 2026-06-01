@@ -5,7 +5,7 @@
     "url": "https://github.com/akaieuan"
   },
   "metadata": {
-    "description": "Live observability + a read-only MCP surface for Blender -> glTF pipelines.",
+    "description": "Live observability, guided skills, and a read-only MCP surface for Blender -> glTF pipelines.",
     "version": "0.5.0"
   },
   "plugins": [
@@ -17,7 +17,7 @@
       "author": { "name": "Ieuan King" },
       "homepage": "https://github.com/akaieuan/Hologram",
       "license": "MIT",
-      "keywords": ["blender", "gltf", "glb", "mcp", "observability", "pipeline"]
+      "keywords": ["blender", "gltf", "glb", "mcp", "observability", "pipeline", "skills"]
     }
   ]
 }
