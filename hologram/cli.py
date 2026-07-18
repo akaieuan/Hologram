@@ -67,6 +67,12 @@ def _init(directory: str, force: bool = False) -> int:
         "Next: `hologram dashboard` to view the pipeline. .mcp.json wires the read-only "
         "MCP tools into Claude Code (launched via uvx — no install needed)."
     )
+    print(
+        "Optional: to have your Blender pipeline write an exports/manifest.json "
+        "(versions, params, tri counts, thumbnails, history) that the dashboard "
+        "reads, copy examples/export_helper.py into it — see the README's "
+        "\"Export manifest convention\" section."
+    )
     return 0
 
 
@@ -163,6 +169,72 @@ def _check(project: str | None, as_json: bool, do_init: bool) -> int:
     return 1 if report["summary"]["errors"] else 0
 
 
+def _watch_signature(cfg) -> tuple:
+    """A cheap change-fingerprint of everything `check --watch` reacts to: the
+    event log plus every file under the exports dir (mtime + size). Comparing
+    successive signatures tells us when to re-run — stdlib only, no inotify."""
+    parts: list[tuple] = []
+    log = cfg.events_log
+    try:
+        st = log.stat()
+        parts.append(("log", st.st_mtime_ns, st.st_size))
+    except OSError:
+        parts.append(("log", 0, 0))
+    root = cfg.export_root
+    if root.is_dir():
+        for p in sorted(root.rglob("*")):
+            try:
+                if p.is_file():
+                    st = p.stat()
+                    parts.append((str(p), st.st_mtime_ns, st.st_size))
+            except OSError:
+                continue
+    return tuple(parts)
+
+
+def _check_watch(project: str | None, as_json: bool, interval: float) -> int:
+    """Re-run checks whenever the exports dir or event log changes.
+
+    A polling loop (no third-party watchers): recompute a mtime/size signature
+    every `interval` seconds and re-run when it moves. Runs with ``emit=False`` so
+    it never writes snapshots or events — which also keeps it from re-triggering
+    itself by appending to the very event log it watches. Clean Ctrl-C exit."""
+    import time
+
+    from . import checks as checks_mod
+    from .config import load_config
+    from .watch import DIM, RESET
+
+    cfg = load_config(project)
+    color = bool(getattr(sys.stdout, "isatty", lambda: False)())
+
+    def dim(text: str) -> str:
+        return f"{DIM}{text}{RESET}" if color else text
+
+    print(f"hologram check --watch · {cfg.name}")
+    print(dim(f"watching {cfg.rel(cfg.export_root)} + {cfg.rel(cfg.events_log)}"
+              f"  (poll {interval:g}s, ctrl-c to stop)"))
+
+    last_sig: tuple | None = None
+    try:
+        while True:
+            sig = _watch_signature(cfg)
+            if sig != last_sig:
+                last_sig = sig
+                report = checks_mod.run_project(cfg, emit=False)
+                print()
+                print(dim(f"— {time.strftime('%H:%M:%S')} —"))
+                if as_json:
+                    import json
+                    print(json.dumps(report, indent=2))
+                else:
+                    print(format_check_report(report, color=color))
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        print()
+        return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="hologram",
@@ -199,6 +271,10 @@ def main(argv: list[str] | None = None) -> int:
                          help="Emit a machine-readable JSON report.")
     p_check.add_argument("--init", action="store_true",
                          help="Scaffold .hologram/checks.py and exit.")
+    p_check.add_argument("--watch", action="store_true",
+                         help="Re-run checks when the exports dir or event log changes.")
+    p_check.add_argument("--interval", type=float, default=1.0,
+                         help="Poll interval for --watch, in seconds (default: 1.0).")
 
     p_init = sub.add_parser("init", help="Scaffold hologram.toml + .mcp.json in a project.")
     p_init.add_argument("directory", nargs="?", default=".",
@@ -224,6 +300,8 @@ def main(argv: list[str] | None = None) -> int:
             color=False if args.no_color else None,
         )
     if args.command == "check":
+        if args.watch:
+            return _check_watch(args.project, args.as_json, args.interval)
         return _check(args.project, args.as_json, args.init)
     if args.command == "init":
         return _init(args.directory, force=args.force)
