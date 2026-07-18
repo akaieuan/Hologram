@@ -14,6 +14,8 @@ Routes:
   GET  /api/history?asset=  version snapshots for one asset (+ &v=N introspects
                             a snapshot and diffs it against the current export)
   GET  /api/thumb?asset=    stream one asset's manifest thumbnail (if present)
+  GET  /api/golden          golden truths + per-asset tri-budget verdicts
+  GET  /api/skills          the plugin's bundled skills as a trigger registry
 
 State caches for 2s. The SSE stream watches the event log's byte size and emits
 each newly-appended line. No validation in v0.1 — the dashboard observes.
@@ -36,12 +38,17 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from .. import __version__, blender, events
+from .. import golden as golden_mod
 from .. import manifest as manifest_mod
 from ..config import Config, load_config
 from ..gltf import load_asset
 
 HERE = Path(__file__).resolve().parent
 STATIC_DIR = HERE / "static"
+# The plugin's bundled skills live inside the installed package, next to this
+# module: hologram/plugin/skills/<id>/SKILL.md. Resolved off __file__ so it works
+# wherever the package is installed, and picks up skill dirs added later.
+SKILLS_DIR = HERE.parent / "plugin" / "skills"
 
 # Set once by run() before serving; the handler reads it (read-only across threads).
 CONFIG: Config | None = None
@@ -183,6 +190,65 @@ def probe_blender_mcp(timeout: float = 0.3) -> dict:
     return blender.probe(BLENDER_MCP_HOST, BLENDER_MCP_PORT, timeout)
 
 
+def _first_segment(glb: str) -> str | None:
+    """First path segment of a manifest ``glb`` path (its category directory),
+    mirroring the check runner's category fallback. ``None`` for a bare filename."""
+    parts = [p for p in glb.replace("\\", "/").split("/") if p]
+    return parts[0] if len(parts) > 1 else None
+
+
+# ── Bundled-skill registry ────────────────────────────────────────────────────
+
+def _parse_frontmatter(text: str) -> dict[str, str]:
+    """Hand-parse a SKILL.md's leading ``---`` YAML frontmatter into a flat
+    ``{key: value}`` map. Deliberately tiny — no yaml lib: single-line
+    ``key: value`` pairs only, splitting on the first colon, with surrounding
+    quotes stripped. Malformed or missing frontmatter yields ``{}``."""
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}
+    fm: dict[str, str] = {}
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        key, sep, val = line.partition(":")
+        if not sep:
+            continue
+        key = key.strip()
+        val = val.strip()
+        if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+            val = val[1:-1]
+        if key:
+            fm[key] = val
+    return fm
+
+
+def load_skills() -> list[dict[str, str]]:
+    """The plugin's bundled skills as a trigger registry — one entry per
+    ``plugin/skills/<id>/SKILL.md``, sorted by id. Derived from the filesystem so
+    newly-added skill directories appear with no code change. ``kind`` comes from
+    the frontmatter when present, defaulting to ``"workflow"``."""
+    out: list[dict[str, str]] = []
+    if not SKILLS_DIR.is_dir():
+        return out
+    for child in sorted(SKILLS_DIR.iterdir()):
+        skill_md = child / "SKILL.md"
+        if not child.is_dir() or not skill_md.is_file():
+            continue
+        try:
+            fm = _parse_frontmatter(skill_md.read_text(encoding="utf-8"))
+        except OSError:
+            continue
+        out.append({
+            "id": child.name,
+            "trigger": f"/hologram:{child.name}",
+            "name": fm.get("name", child.name),
+            "description": fm.get("description", ""),
+            "kind": fm.get("kind", "workflow"),
+        })
+    return out
+
+
 # ── HTTP handler ────────────────────────────────────────────────────────────────
 
 class Handler(BaseHTTPRequestHandler):
@@ -282,6 +348,12 @@ class Handler(BaseHTTPRequestHandler):
             q = parse_qs(parsed.query)
             self._thumb(q.get("asset", [""])[0])
             return
+        if path == "/api/golden":
+            self._golden()
+            return
+        if path == "/api/skills":
+            self._send_json(load_skills())
+            return
 
         self.send_error(404, "Not Found")
 
@@ -295,6 +367,25 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"present": False, "count": 0, "assets": {}})
             return
         self._send_json({"present": True, **mani.to_dict()})
+
+    def _golden(self) -> None:
+        """The parsed golden truths plus a per-asset tri-budget verdict for every
+        manifest asset. ``present: false`` (with empty budgets) when the project
+        ships no ``golden.json``. Read-only — Hologram never writes it."""
+        golden = golden_mod.load_golden(self.cfg)
+        if golden is None:
+            self._send_json({"present": False, "golden": None, "budgets": {}})
+            return
+        budgets: dict[str, Any] = {}
+        mani = manifest_mod.load_manifest(self.cfg)
+        if mani is not None:
+            for asset_id, rec in mani.records.items():
+                category = rec.category or _first_segment(rec.glb)
+                budget = golden.budget_for(category)
+                tris = rec.tris
+                over = bool(tris is not None and budget is not None and tris > budget)
+                budgets[asset_id] = {"tris": tris, "budget": budget, "over": over}
+        self._send_json({"present": True, "golden": golden.raw, "budgets": budgets})
 
     def _current_glb(self, asset_id: str, rec: object | None) -> Path | None:
         """Resolve the live (current) export for an asset, within export_root.

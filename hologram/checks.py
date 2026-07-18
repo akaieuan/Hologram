@@ -39,13 +39,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .config import Config
+from . import golden as golden_mod
+from . import manifest as manifest_mod
+from . import png as png_mod
+from .config import Config, resolve_within
 from .gltf import Asset, load_asset
 
 __all__ = [
     "check", "ok", "warn", "fail",
     "Result", "Finding", "Check", "Asset",
     "run_asset", "run_project",
+    "TRI_BUDGET", "THUMB_DRIFT", "golden_findings", "golden_check_names",
 ]
 
 # Severity vocabulary, shared with the dashboard's .finding.err/.warn styles.
@@ -193,6 +197,140 @@ BUILTIN_CHECKS: list[Check] = [
 ]
 
 
+# ── Golden-truth checks (opt-in via golden.json) ─────────────────────────────
+# These aren't `@check`-decorated: unlike a plain check they need per-asset
+# context beyond the Asset struct (its manifest tri count and thumbnail, the
+# golden budgets), so they produce `Finding`s directly. They run only when the
+# project ships a golden.json and otherwise contribute nothing — an absent
+# golden file is zero behaviour change. Findings follow the exact same shape and
+# reporting path as every other check.
+TRI_BUDGET = "tri budget"
+THUMB_DRIFT = "thumbnail drift"
+
+
+def golden_check_names(golden: golden_mod.GoldenTruths) -> list[str]:
+    """The golden checks that are *active* for this golden file — a budget check
+    when budgets are declared, a drift check when thumbnails are configured."""
+    names: list[str] = []
+    if golden.tri_budgets is not None:
+        names.append(TRI_BUDGET)
+    if golden.thumbnails is not None:
+        names.append(THUMB_DRIFT)
+    return names
+
+
+def golden_findings(
+    cfg: Config,
+    asset: Asset,
+    path: Path,
+    golden: golden_mod.GoldenTruths,
+    rec: manifest_mod.AssetRecord | None,
+) -> list[Finding]:
+    """Run the golden checks over one asset, in the same order as
+    :func:`golden_check_names`. A check that has nothing to assert for this asset
+    (no budget for its category, no golden thumbnail on file) is skipped silently
+    — it contributes no Finding at all."""
+    findings: list[Finding] = []
+    if golden.tri_budgets is not None:
+        f = _tri_budget_finding(cfg, asset, path, golden, rec)
+        if f is not None:
+            findings.append(f)
+    if golden.thumbnails is not None:
+        f = _thumbnail_drift_finding(cfg, asset, golden, rec)
+        if f is not None:
+            findings.append(f)
+    return findings
+
+
+def _golden_category(cfg: Config, path: Path, rec: manifest_mod.AssetRecord | None) -> str | None:
+    """The category used for a budget lookup: the manifest record's category
+    when present, else the first path segment of the asset under export_root."""
+    if rec is not None and rec.category:
+        return rec.category
+    try:
+        parts = path.resolve().relative_to(cfg.export_root.resolve()).parts
+    except ValueError:
+        return None
+    return parts[0] if len(parts) > 1 else None
+
+
+def _tri_budget_finding(
+    cfg: Config,
+    asset: Asset,
+    path: Path,
+    golden: golden_mod.GoldenTruths,
+    rec: manifest_mod.AssetRecord | None,
+) -> Finding | None:
+    """Assert an asset's triangle count against its category budget. Skips when
+    no budget applies (no category budget and no default) or when the tri count
+    is unknown (there is no manifest record to read it from)."""
+    category = _golden_category(cfg, path, rec)
+    budget = golden.budget_for(category)
+    if budget is None:
+        return None  # no budget for this category and no default → skip silently
+    tris = rec.tris if rec is not None else None
+    if tris is None:
+        return None  # no tri count to check against → skip silently
+    label = category or "default"
+    if tris > budget:
+        return Finding(asset.filename, TRI_BUDGET, False, ERROR,
+                       f"{tris} tris over budget {budget} ({label})")
+    return Finding(asset.filename, TRI_BUDGET, True, OK, "")
+
+
+def _thumbnail_drift_finding(
+    cfg: Config,
+    asset: Asset,
+    golden: golden_mod.GoldenTruths,
+    rec: manifest_mod.AssetRecord | None,
+) -> Finding | None:
+    """Compare an asset's current thumbnail against its golden reference. Skips
+    when no golden thumbnail is on file for the asset. A missing current
+    thumbnail or an unreadable/unsupported PNG is a *warning*, not an error; only
+    a real drift beyond ``maxDiff`` is an error."""
+    thumbs = golden.thumbnails
+    assert thumbs is not None  # caller gates on golden.thumbnails
+    asset_id = rec.id if rec is not None else asset.stem
+    golden_png = _golden_thumb_path(cfg, thumbs.dir, asset_id)
+    if golden_png is None or not golden_png.is_file():
+        return None  # no golden reference for this asset → skip silently
+    current = _current_thumb(cfg, rec)
+    if current is None:
+        return Finding(asset.filename, THUMB_DRIFT, False, WARN,
+                       "golden thumbnail present but asset has no current thumbnail")
+    try:
+        reference = png_mod.read_png(golden_png)
+        live = png_mod.read_png(current)
+        diff = png_mod.mean_abs_diff(reference, live)
+    except (png_mod.PNGError, OSError) as e:
+        return Finding(asset.filename, THUMB_DRIFT, False, WARN,
+                       f"could not compare thumbnails: {e}")
+    if diff > thumbs.max_diff:
+        return Finding(asset.filename, THUMB_DRIFT, False, ERROR,
+                       f"thumbnail drift {diff:.3f} > {thumbs.max_diff:g}")
+    return Finding(asset.filename, THUMB_DRIFT, True, OK, "")
+
+
+def _golden_thumb_path(cfg: Config, thumbs_dir: str, asset_id: str) -> Path | None:
+    """Locate ``<thumbs_dir>/<asset-id>.png`` under the project root. Returns
+    ``None`` for an unsafe asset id (the id names a single PNG file)."""
+    if not manifest_mod.is_safe_id(asset_id):
+        return None
+    return (cfg.root / thumbs_dir / f"{asset_id}.png").resolve()
+
+
+def _current_thumb(cfg: Config, rec: manifest_mod.AssetRecord | None) -> Path | None:
+    """Resolve an asset's live thumbnail exactly as the dashboard's /api/thumb
+    route does: the manifest record's ``thumbnail`` path, resolved within
+    export_root. ``None`` when there is no record, no thumbnail, or it is missing."""
+    if rec is None or not rec.thumbnail:
+        return None
+    resolved = resolve_within(cfg.export_root, rec.thumbnail)
+    if resolved is None or not resolved.is_file():
+        return None
+    return resolved
+
+
 # ── Loading user checks ──────────────────────────────────────────────────────
 def discover_checks(namespace: dict) -> list[Check]:
     """Collect decorated checks from a module namespace, in definition order."""
@@ -252,6 +390,12 @@ def run_project(cfg: Config, *, emit: bool = False) -> dict:
     from . import events
 
     checks, load_error = all_checks(cfg)
+    # Golden truths are opt-in: when a golden.json is present its built-in checks
+    # (tri budgets, thumbnail drift) run alongside the user checks; absent, they
+    # contribute nothing. The manifest supplies per-asset tri counts/thumbnails.
+    golden = golden_mod.load_golden(cfg)
+    golden_names = golden_check_names(golden) if golden is not None else []
+    mani = manifest_mod.load_manifest(cfg) if golden is not None else None
     results: list[dict] = []
     n_assets = n_error = n_warn = 0
 
@@ -270,6 +414,9 @@ def run_project(cfg: Config, *, emit: bool = False) -> dict:
                 n_error += 1
                 continue
             findings = run_asset(asset, checks)
+            if golden is not None:
+                rec = mani.by_stem(asset.stem) if mani is not None else None
+                findings = [*findings, *golden_findings(cfg, asset, p, golden, rec)]
             problems = [f for f in findings if not f.ok]
             n_error += sum(1 for f in problems if f.severity == ERROR)
             n_warn += sum(1 for f in problems if f.severity == WARN)
@@ -295,9 +442,10 @@ def run_project(cfg: Config, *, emit: bool = False) -> dict:
                         changed=changes.get("changed", {}),
                     )
 
+    n_checks = len(checks) + len(golden_names)
     summary = {
         "assets": n_assets,
-        "checks": len(checks),
+        "checks": n_checks,
         "errors": n_error,
         "warnings": n_warn,
         "clean": sum(1 for r in results if r["ok"]),
@@ -305,11 +453,11 @@ def run_project(cfg: Config, *, emit: bool = False) -> dict:
     if emit:
         events.append(
             cfg.events_log, "check_run",
-            assets=n_assets, checks=len(checks),
+            assets=n_assets, checks=n_checks,
             errors=n_error, warnings=n_warn,
         )
     return {
-        "checks": [c.name for c in checks],
+        "checks": [c.name for c in checks] + golden_names,
         "results": results,
         "summary": summary,
         "load_error": load_error,
