@@ -117,11 +117,11 @@ caches it. There are two entry points:
 **1 · The dashboard** — point it at any project that has exported GLBs:
 
 ```bash
-uvx --from git+https://github.com/akaieuan/Hologram hologram dashboard
+uvx --from hologram-gltf hologram dashboard
 ```
 
-It serves **http://127.0.0.1:7870**. (Once Hologram is on PyPI this shortens to
-`uvx --from hologram-gltf hologram dashboard`.)
+It serves **http://127.0.0.1:7870**. (For the unreleased main branch, swap in
+`--from git+https://github.com/akaieuan/Hologram`.)
 
 **2 · The Claude Code plugin** — the live activity feed + MCP tools. Inside
 Claude Code:
@@ -179,10 +179,9 @@ servers, so the dashboard stays a `uvx hologram dashboard` you run in a terminal
 when you want eyes on the pipeline. Same UI, same command — only the delivery is
 install-free.
 
-> **Prefer a classic install?** From a clone, `pip install -e .` (or `uv pip
-> install -e .`) still gives you a plain `hologram` command. And publishing to
-> PyPI (`uv build && uv publish`) turns every `uvx --from git+… hologram` here
-> into a tidy `uvx hologram`.
+> **Prefer a classic install?** `pip install hologram-gltf` (or `uv pip install
+> hologram-gltf`) gives you a plain `hologram` command on your PATH; from a
+> clone, `pip install -e .` does the same against your working tree.
 
 ## Try the bundled examples
 
@@ -213,20 +212,20 @@ It shows up in the **Live** tab within a second.
 From your pipeline's root:
 
 ```bash
-uvx --from git+https://github.com/akaieuan/Hologram hologram init
+uvx --from hologram-gltf hologram init
 ```
 
 That writes a `hologram.toml` (edit `export_root` to point at wherever your
 `.glb` files land) plus a `.mcp.json`. Then launch the dashboard the same way:
 
 ```bash
-uvx --from git+https://github.com/akaieuan/Hologram hologram dashboard
+uvx --from hologram-gltf hologram dashboard
 ```
 
 To author your own validation rules, scaffold a checks file and edit it:
 
 ```bash
-uvx --from git+https://github.com/akaieuan/Hologram hologram check --init
+uvx --from hologram-gltf hologram check --init
 ```
 
 ## The MCP server
@@ -240,7 +239,7 @@ do. If you'd rather register it by hand (no plugin), `hologram init` drops a
   "mcpServers": {
     "hologram": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/akaieuan/Hologram", "hologram", "mcp"]
+      "args": ["--from", "hologram-gltf", "hologram", "mcp"]
     }
   }
 }

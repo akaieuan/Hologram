@@ -2,7 +2,7 @@
   "mcpServers": {
     "hologram": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/akaieuan/Hologram", "hologram", "mcp"]
+      "args": ["--from", "hologram-gltf", "hologram", "mcp"]
     }
   }
 }
