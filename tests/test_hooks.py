@@ -16,8 +16,8 @@ HOOK_PATH = REPO / "hologram" / "plugin" / "hooks" / "log_event.py"
 
 def _load_hook():
     spec = importlib.util.spec_from_file_location("hologram_hook_log_event", HOOK_PATH)
+    assert spec and spec.loader  # narrow ModuleSpec | None before use
     mod = importlib.util.module_from_spec(spec)
-    assert spec and spec.loader
     spec.loader.exec_module(mod)
     return mod
 

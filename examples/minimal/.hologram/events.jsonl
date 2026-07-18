@@ -1,0 +1,5 @@
+{"ts": 1780067992.661054, "type": "session_start", "session_id": "sess1234", "cwd": "/proj", "source": "startup"}
+{"ts": 1780068002.661054, "type": "tool_use", "phase": "post", "session_id": "sess1234", "duration_ms": 1200, "tool": "Bash", "command": "blender --version"}
+{"ts": 1780068010.661054, "type": "tool_use", "phase": "post", "session_id": "sess1234", "failed": true, "error": "Command exited with non-zero status code 1", "duration_ms": 4231, "tool": "Bash", "command": "false"}
+{"ts": 1780068014.661054, "type": "tool_use", "phase": "post", "session_id": "sess5678", "failed": true, "error": "No such file or directory: 'scripts/export.py'", "tool": "Edit", "file_path": "scripts/export.py"}
+{"ts": 1780068019.661054, "type": "tool_use", "phase": "pre", "session_id": "sess1234", "tool": "Bash", "command": "blender --background --python bake.py"}

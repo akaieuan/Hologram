@@ -1,6 +1,6 @@
 {
   "name": "hologram",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Live observability + an agent (MCP) surface for Blender -> glTF pipelines. Streams Claude Code activity to the hologram dashboard, exposes four read-only asset tools (list_assets, inspect_asset, tail_events, pipeline_status) plus a non-destructive render_asset, and bundles guided skills (start, inspect, check, status, create-skill) to get going fast.",
   "author": {
     "name": "Ieuan King"

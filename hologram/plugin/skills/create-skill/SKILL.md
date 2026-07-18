@@ -2,6 +2,7 @@
 name: Create a Hologram skill
 description: Scaffold a new project skill that automates one of *your* Hologram workflows — pre-wired to Hologram's MCP tools and CLI so it actually works. Use when someone says "make a hologram skill", "create a skill for X", "turn this into a skill", "automate this hologram workflow", or wants a reusable command for a repeated asset task.
 allowed-tools: Write, Read, Glob, Bash(hologram *)
+kind: workflow
 ---
 
 # Create a Hologram skill

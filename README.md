@@ -11,6 +11,13 @@
 
 Part of akaOSS — https://www.akaoss.dev/projects/hologram
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/dashboard-dark.png" />
+  <img alt="The Hologram dashboard — live activity feed with per-session tags, failures, and a filterable stream." src="docs/dashboard-light.png" />
+</picture>
+
+<sub>The live dashboard against `examples/minimal` — warm-paper light and warm-near-black dark, following your system theme. Screens: [light](docs/dashboard-light.png) · [dark](docs/dashboard-dark.png).</sub>
+
 Hologram watches a glTF asset pipeline and streams what's happening to a local
 dashboard in real time — including the tool calls your AI coding agent is making
 right now. It also exposes the pipeline to agents through a small
@@ -299,6 +306,63 @@ script_pattern = "props/*.py"           # optional, relative to source_root
 
 See `examples/minimal/` (categorized) and `examples/flat-layout/` (no categories)
 for both shapes running on the same dashboard.
+
+## Export manifest convention
+
+Hologram works on nothing but your `.glb` files. But if your Blender pipeline
+*also* writes a small **manifest** next to its exports, Hologram reads it and the
+dashboard gets richer: each asset shows its **version, generator, build params,
+triangle count, and thumbnail**, plus a **version-history flip-through** that
+diffs any prior snapshot against the current export. This is entirely optional —
+**no manifest means zero change**, and nothing here is ever written by Hologram
+(the core stays read-only; the writer is a template you copy).
+
+The convention is one `exports/` tree (point `export_root` at it):
+
+```
+exports/
+  manifest.json                 # index of every asset (see schema below)
+  audit.jsonl                   # append-only ledger, one JSON object per line
+  <category>/<id>.glb           # the current export
+  .history/<id>/vN.glb          # prior versions (keep-N rotation)
+  thumbnails/<id>.vN.png        # optional per-version thumbnail
+```
+
+`manifest.json` is `{"assets": {<id>: <entry>}}`, where each entry is:
+
+```json
+{
+  "id": "hero",
+  "name": "Hero",
+  "category": "characters",
+  "glb": "characters/hero.glb",
+  "thumbnail": "thumbnails/hero.v3.png",
+  "version": 3,
+  "params": { "height": 0.9, "rig": "biped" },
+  "tris": 3000,
+  "generator": "pipeline/characters/hero.py",
+  "createdAt": "2026-07-04T12:01:26-04:00",
+  "updatedAt": "2026-07-07T11:31:18-04:00",
+  "status": "pending-review"
+}
+```
+
+`audit.jsonl` records one line per export (`ts`, `action`, `assetId`, `version`,
+`params`, `generator`, `tris`, `note`, `thumbnail`) — extra keys (a review
+decision, an actor) are preserved as-is. `.history/<id>/` keeps the most recent
+few versions so the dashboard can flip through them.
+
+A **copyable, documented writer** for exactly this layout — atomic manifest
+upsert, audit append, keep-N history rotation, and a thumbnail render — ships as
+[`examples/export_helper.py`](examples/export_helper.py). It imports `bpy` and is
+**never imported by the Hologram package**; paste it into your Blender pipeline
+and call `export_asset(...)`. `hologram init` points you at it.
+
+Once the manifest is in place, the dashboard's **Assets** view surfaces this
+metadata inline, and two read-only endpoints back it: `GET /api/manifest` (the
+whole sidecar) and `GET /api/history?asset=<id>[&v=N]` (snapshot introspection +
+a fingerprint diff against the current export, reusing the same diff machinery as
+`hologram check`).
 
 ## How it works
 

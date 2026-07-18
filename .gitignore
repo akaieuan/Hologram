@@ -16,6 +16,9 @@ env/
 # version control (checks.py is source; events.jsonl is a runtime artifact).
 **/.hologram/*
 !**/.hologram/checks.py
+# examples/minimal doubles as the dashboard-test fixture; its event log is
+# hand-crafted test data, not a runtime artifact.
+!examples/minimal/.hologram/events.jsonl
 
 # OS / editor
 .DS_Store

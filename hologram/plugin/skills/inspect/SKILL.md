@@ -2,6 +2,7 @@
 name: Inspect a Hologram asset
 description: Look at a glTF/GLB asset through Hologram — resolve which file they mean, read its structure (nodes, meshes, materials, animations, skins), and render a PNG preview via the live Blender so you can actually see it. Use when someone says "what's in hero.glb", "show me that asset", "inspect this model", "render the sword", "how many materials does X have", or wants to understand an export without opening Blender.
 allowed-tools: mcp__hologram__list_assets, mcp__hologram__inspect_asset, mcp__hologram__render_asset
+kind: workflow
 ---
 
 # Inspect a Hologram asset

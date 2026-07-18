@@ -33,6 +33,7 @@
     <nav class="tabs" role="tablist" aria-label="Views">
       <button class="tab active" data-view="live" role="tab" id="tab-live" aria-controls="view-live" aria-selected="true">Live</button>
       <button class="tab" data-view="assets" role="tab" id="tab-assets" aria-controls="view-assets" aria-selected="false">Assets<span class="tab-count" id="tab-assets-count"></span></button>
+      <button class="tab" data-view="skills" role="tab" id="tab-skills" aria-controls="view-skills" aria-selected="false">Skills<span class="tab-count" id="tab-skills-count"></span></button>
       <button class="tab" data-view="debug" role="tab" id="tab-debug" aria-controls="view-debug" aria-selected="false">Debug</button>
     </nav>
     <div class="status">
@@ -65,7 +66,10 @@
       <span class="muted">no sessions active</span>
     </div>
     <section class="feed-section">
-      <h2 class="feed-title">Activity</h2>
+      <div class="feed-head">
+        <h2 class="feed-title">Activity</h2>
+        <input type="search" id="feed-search" class="input feed-search" placeholder="filter activity…" aria-label="Filter activity feed" />
+      </div>
       <div id="feed" class="feed" role="log" aria-live="polite" aria-label="Activity feed">
         <div class="feed-empty">
           <p>No activity yet.</p>
@@ -95,6 +99,17 @@
       <section class="asset-stage" id="asset-stage">
         <div class="stage-empty muted">Select an asset to preview.</div>
       </section>
+    </div>
+  </main>
+
+  <!-- SKILLS — the codex registry: what the plugin can do, browsable -->
+  <main id="view-skills" class="view" role="tabpanel" aria-labelledby="tab-skills" tabindex="0">
+    <div class="skills-intro muted">
+      Guided skills bundled with the Hologram plugin — invoke any of them from a
+      Claude Code chat in this project.
+    </div>
+    <div id="skills-list" class="skills-list">
+      <div class="muted" style="padding: var(--space-5) 0">loading skills…</div>
     </div>
   </main>
 
