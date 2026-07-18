@@ -79,7 +79,7 @@ def send_command(
         while True:
             try:
                 data = s.recv(8192)
-            except socket.timeout:
+            except TimeoutError:
                 break
             if not data:
                 break
@@ -89,7 +89,7 @@ def send_command(
                 return json.loads(b"".join(chunks).decode("utf-8"))
             except json.JSONDecodeError:
                 continue
-    except (ConnectionRefusedError, socket.timeout, OSError) as e:
+    except (TimeoutError, ConnectionRefusedError, OSError) as e:
         return {"status": "error", "message": f"{type(e).__name__}: {e}"}
     finally:
         try:

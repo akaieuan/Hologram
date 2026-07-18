@@ -1,8 +1,8 @@
 /* hologram dashboard — shadcn-flavoured, ported by hand into vanilla CSS.
  *
- * Matches the akabuild.dev design language: warm paper surfaces, Inter for the
+ * Matches the akaoss.dev design language: warm paper surfaces, Inter for the
  * human voice, mono reserved for machine data (paths, ids, commands, JSON),
- * a single sage-green accent used with restraint, 10px rounded cards, soft
+ * a single warm-amber accent used with restraint, 16px rounded cards, soft
  * shadows, roomy rhythm. Light is the default; dark is opt-in via
  * :root[data-theme="dark"] (set before paint by an inline head script — no FOUC,
  * no CSS duplication). No framework, no build step. */
@@ -20,34 +20,34 @@
  * (radius, type, space, motion) is shared. */
 
 :root {
-  /* surfaces + ink */
-  --background:        #f5f5f4;  /* warm page                     */
-  --header-bg:         rgba(245, 244, 244, 0.78);
-  --card:              #ffffff;  /* raised surface                */
-  --card-2:            #fafafa;  /* inset within a card           */
-  --foreground:        #0a0a0a;  /* primary text                  */
-  --foreground-2:      #3f3f43;  /* secondary text                */
-  --muted:             #ececea;  /* hover fills, segmented track  */
-  --muted-foreground:  #585c62;  /* labels, timestamps (AA ≥4.5:1)*/
-  --border:            #dededb;  /* hairlines, card edges         */
-  --border-strong:     #cfcfca;
+  /* surfaces + ink — warm-neutral paper (akaOSS OKLCH ~107°, ported to hex) */
+  --background:        #f1f1ef;  /* warm paper page               */
+  --header-bg:         rgba(241, 241, 239, 0.80);
+  --card:              #fdfdfc;  /* raised surface                */
+  --card-2:            #f6f6f4;  /* inset within a card           */
+  --foreground:        #0d0d0c;  /* primary text                  */
+  --foreground-2:      #484845;  /* secondary text                */
+  --muted:             #e8e8e4;  /* hover fills, segmented track  */
+  --muted-foreground:  #64635e;  /* labels, timestamps (AA 5.3:1) */
+  --border:            #e1e0db;  /* hairlines, card edges         */
+  --border-strong:     #d2d1cc;
 
   /* brand + semantics */
-  --accent:            #69b47f;  /* the one sage-green accent     */
-  --accent-soft:       rgba(105, 180, 127, 0.14);
-  --ring:              #69b47f;
-  --primary:           #1a1a1a;  /* solid button face             */
-  --primary-foreground:#fafafa;
+  --accent:            #b97500;  /* the one warm-amber accent     */
+  --accent-soft:       rgba(185, 117, 0, 0.12);
+  --ring:              #b97500;
+  --primary:           #161615;  /* solid button face             */
+  --primary-foreground:#fafaf9;
 
-  --good: #18804f;  /* darkened from sage so status text clears AA on paper */
-  --warn: #8a5910;
-  --bad:  #c5281d;
+  --good: #2b7440;  /* green so status text clears AA on paper */
+  --warn: #a24e10;
+  --bad:  #c2272d;
 
-  /* event category dots — distinct but muted on light paper */
-  --type-skill:   #7c5cde;
-  --type-mcp:     #3b7dd8;
-  --type-file:    #2f9e6e;
-  --type-session: #c2841a;
+  /* event category dots — distinct hues, muted on warm paper */
+  --type-skill:   #7152b5;  /* violet  */
+  --type-mcp:     #1570d1;  /* blue    */
+  --type-file:    #2d7b48;  /* green   */
+  --type-session: #be7c09;  /* amber   */
 
   /* type families */
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
@@ -57,11 +57,11 @@
    * right edges line up instead of the header running full-bleed */
   --content-max: 1100px;
 
-  /* radius scale — shadcn --radius 0.625rem ≈ 10px */
-  --radius:    10px;
-  --radius-lg: 14px;
-  --radius-md: 8px;
-  --radius-sm: 6px;
+  /* radius scale — akaOSS rounded-2xl surfaces (~16px cards) */
+  --radius:    16px;
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 8px;
 
   /* spacing scale — roomier than v1 */
   --space-1:  4px;
@@ -84,10 +84,10 @@
   --text-2xl:  22px;
   --text-3xl:  30px;
 
-  /* elevation */
-  --shadow-sm: 0 1px 2px 0 rgba(20, 18, 11, 0.06);
-  --shadow-md: 0 2px 4px -1px rgba(20, 18, 11, 0.08), 0 1px 2px -1px rgba(20, 18, 11, 0.06);
-  --shadow-lg: 0 12px 28px -8px rgba(20, 18, 11, 0.16), 0 4px 10px -4px rgba(20, 18, 11, 0.10);
+  /* elevation — soft, hairline-led (akaOSS leans on borders, not shadow) */
+  --shadow-sm: 0 1px 2px 0 rgba(20, 18, 11, 0.04);
+  --shadow-md: 0 2px 4px -2px rgba(20, 18, 11, 0.06), 0 1px 2px -1px rgba(20, 18, 11, 0.04);
+  --shadow-lg: 0 10px 24px -10px rgba(20, 18, 11, 0.12), 0 3px 8px -4px rgba(20, 18, 11, 0.07);
 
   /* motion */
   --dur-fast: 0.15s;
@@ -97,35 +97,35 @@
 }
 
 :root[data-theme="dark"] {
-  --background:        #14120b;  /* warm charcoal                 */
-  --header-bg:         rgba(20, 18, 11, 0.72);
-  --card:              #1b1911;
-  --card-2:            #211e15;
-  --foreground:        #fafafa;
-  --foreground-2:      #cbc7bd;
-  --muted:             #28251b;
-  --muted-foreground:  #a8a39a;
-  --border:            #312e23;
-  --border-strong:     #3d3a2d;
+  --background:        #0d0d0c;  /* warm near-black               */
+  --header-bg:         rgba(13, 13, 12, 0.72);
+  --card:              #171716;
+  --card-2:            #1e1e1c;
+  --foreground:        #eaeae8;
+  --foreground-2:      #b8b7b4;
+  --muted:             #272625;
+  --muted-foreground:  #93928f;
+  --border:            #363533;
+  --border-strong:     #484845;
 
-  --accent:            #69b47f;
-  --accent-soft:       rgba(105, 180, 127, 0.18);
-  --ring:              #69b47f;
-  --primary:           #fafafa;
-  --primary-foreground:#14120b;
+  --accent:            #eab358;  /* warm amber lifts on near-black */
+  --accent-soft:       rgba(234, 179, 88, 0.16);
+  --ring:              #eab358;
+  --primary:           #eaeae8;
+  --primary-foreground:#0d0d0c;
 
-  --good: #5fd39a;
-  --warn: #e0a94a;
-  --bad:  #f2554d;
+  --good: #57bc80;
+  --warn: #f1af64;
+  --bad:  #ef6567;
 
-  --type-skill:   #a98bff;
-  --type-mcp:     #6aa8ff;
-  --type-file:    #5fd39a;
-  --type-session: #e0a94a;
+  --type-skill:   #b3a0ec;  /* violet */
+  --type-mcp:     #64a1ee;  /* blue   */
+  --type-file:    #66ba7f;  /* green  */
+  --type-session: #efba64;  /* amber  */
 
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.40);
-  --shadow-md: 0 2px 6px -1px rgba(0, 0, 0, 0.50), 0 1px 2px -1px rgba(0, 0, 0, 0.40);
-  --shadow-lg: 0 14px 32px -8px rgba(0, 0, 0, 0.62), 0 6px 14px -6px rgba(0, 0, 0, 0.50);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.36);
+  --shadow-md: 0 2px 6px -2px rgba(0, 0, 0, 0.44), 0 1px 2px -1px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 12px 28px -10px rgba(0, 0, 0, 0.56), 0 5px 12px -6px rgba(0, 0, 0, 0.44);
 }
 
 * { box-sizing: border-box; }
@@ -262,9 +262,9 @@ code {
 .live-dot.connected { background: var(--accent); animation: pulse-dot 2.4s infinite; }
 .live-dot.error { background: var(--bad); }
 @keyframes pulse-dot {
-  0%   { box-shadow: 0 0 0 0 rgba(105, 180, 127, 0.40); }
-  70%  { box-shadow: 0 0 0 5px rgba(105, 180, 127, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(105, 180, 127, 0); }
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent); }
+  70%  { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
 }
 
 /* icon button — theme toggle */

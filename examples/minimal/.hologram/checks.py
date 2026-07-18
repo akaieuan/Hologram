@@ -5,7 +5,7 @@ Each function takes an `asset` and returns None/True to pass, or warn()/fail()
 to flag a problem. Scaffold your own with `hologram check --init`.
 """
 
-from hologram.checks import check, warn, fail
+from hologram.checks import check, warn
 
 
 @check("texture-friendly name")

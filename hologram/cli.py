@@ -63,7 +63,10 @@ def _init(directory: str, force: bool = False) -> int:
         print(f"hologram init: wrote {', '.join(wrote)} in {root}")
     if skipped:
         print(f"hologram init: skipped existing {', '.join(skipped)} (use --force to overwrite)")
-    print("Next: `hologram dashboard` to view the pipeline. .mcp.json wires the read-only MCP tools into Claude Code (launched via uvx — no install needed).")
+    print(
+        "Next: `hologram dashboard` to view the pipeline. .mcp.json wires the read-only "
+        "MCP tools into Claude Code (launched via uvx — no install needed)."
+    )
     return 0
 
 
@@ -98,7 +101,7 @@ def lowercase_stem(asset):
 def format_check_report(report: dict, color: bool = True) -> str:
     """Render a `run_project` report as a terminal block. Pure — deterministic
     for a given report, so it is unit-tested with color disabled."""
-    from .watch import RED, GREEN, YELLOW, DIM, RESET
+    from .watch import DIM, GREEN, RED, RESET, YELLOW
 
     def paint(text: str, code: str) -> str:
         return f"{code}{text}{RESET}" if color and code else text
@@ -112,7 +115,9 @@ def format_check_report(report: dict, color: bool = True) -> str:
     for r in report["results"]:
         problems = r["findings"]
         has_err = any(f["severity"] == "error" for f in problems)
-        mark = paint("✗", RED) if has_err else (paint("⚠", YELLOW) if problems else paint("✓", GREEN))
+        mark = (paint("✗", RED) if has_err
+                else paint("⚠", YELLOW) if problems
+                else paint("✓", GREEN))
         label = f"{r['category']}/{r['asset']}" if r.get("category") else r["asset"]
         lines.append(f"  {mark} {label}")
         for f in problems:
@@ -120,7 +125,8 @@ def format_check_report(report: dict, color: bool = True) -> str:
             lines.append(paint(f"      {'✗' if err else '⚠'} {f['check']} · {f['message']}",
                                RED if err else YELLOW))
 
-    summary = f"{s['clean']} clean · {plural(s['warnings'], 'warning')} · {plural(s['errors'], 'error')}"
+    summary = (f"{s['clean']} clean · {plural(s['warnings'], 'warning')}"
+               f" · {plural(s['errors'], 'error')}")
     tone = RED if s["errors"] else (YELLOW if s["warnings"] else GREEN)
     lines += ["", "  " + paint(summary, tone)]
     if report.get("load_error"):
@@ -152,38 +158,51 @@ def _check(project: str | None, as_json: bool, do_init: bool) -> int:
         print(json.dumps(report, indent=2))
     else:
         print(f"hologram check · {cfg.name}")
-        print(format_check_report(report, color=bool(getattr(sys.stdout, "isatty", lambda: False)())))
+        color = bool(getattr(sys.stdout, "isatty", lambda: False)())
+        print(format_check_report(report, color=color))
     return 1 if report["summary"]["errors"] else 0
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="hologram",
-        description="Live observability, guided skills, and an agent (MCP) surface for Blender -> glTF pipelines.",
+        description=("Live observability, guided skills, and an agent (MCP) surface "
+                     "for Blender -> glTF pipelines."),
     )
     parser.add_argument("--version", action="version", version=f"hologram {__version__}")
     sub = parser.add_subparsers(dest="command")
 
     p_dash = sub.add_parser("dashboard", help="Run the live dashboard server.")
-    p_dash.add_argument("--host", default=None, help="Override host (default from config or 127.0.0.1).")
-    p_dash.add_argument("--port", type=int, default=None, help="Override port (default from config or 7870).")
-    p_dash.add_argument("--project", default=None, help="Project root (default: cwd / nearest hologram.toml).")
+    p_dash.add_argument("--host", default=None,
+                        help="Override host (default from config or 127.0.0.1).")
+    p_dash.add_argument("--port", type=int, default=None,
+                        help="Override port (default from config or 7870).")
+    p_dash.add_argument("--project", default=None,
+                        help="Project root (default: cwd / nearest hologram.toml).")
 
     sub.add_parser("mcp", help="Run the MCP server over stdio (launched by Claude Code).")
 
     p_watch = sub.add_parser("watch", help="Stream the event log to the terminal (no browser).")
-    p_watch.add_argument("--project", default=None, help="Project root (default: cwd / nearest hologram.toml).")
-    p_watch.add_argument("--limit", type=int, default=20, help="Recent events to backfill before streaming (default: 20).")
-    p_watch.add_argument("--interval", type=float, default=1.0, help="Poll interval in seconds (default: 1.0).")
-    p_watch.add_argument("--no-color", action="store_true", help="Disable ANSI color (auto-off when piped).")
+    p_watch.add_argument("--project", default=None,
+                         help="Project root (default: cwd / nearest hologram.toml).")
+    p_watch.add_argument("--limit", type=int, default=20,
+                         help="Recent events to backfill before streaming (default: 20).")
+    p_watch.add_argument("--interval", type=float, default=1.0,
+                         help="Poll interval in seconds (default: 1.0).")
+    p_watch.add_argument("--no-color", action="store_true",
+                         help="Disable ANSI color (auto-off when piped).")
 
     p_check = sub.add_parser("check", help="Run read-only checks over the exported assets.")
-    p_check.add_argument("--project", default=None, help="Project root (default: cwd / nearest hologram.toml).")
-    p_check.add_argument("--json", action="store_true", dest="as_json", help="Emit a machine-readable JSON report.")
-    p_check.add_argument("--init", action="store_true", help="Scaffold .hologram/checks.py and exit.")
+    p_check.add_argument("--project", default=None,
+                         help="Project root (default: cwd / nearest hologram.toml).")
+    p_check.add_argument("--json", action="store_true", dest="as_json",
+                         help="Emit a machine-readable JSON report.")
+    p_check.add_argument("--init", action="store_true",
+                         help="Scaffold .hologram/checks.py and exit.")
 
     p_init = sub.add_parser("init", help="Scaffold hologram.toml + .mcp.json in a project.")
-    p_init.add_argument("directory", nargs="?", default=".", help="Target directory (default: cwd).")
+    p_init.add_argument("directory", nargs="?", default=".",
+                        help="Target directory (default: cwd).")
     p_init.add_argument("--force", action="store_true", help="Overwrite existing files.")
 
     args = parser.parse_args(argv)

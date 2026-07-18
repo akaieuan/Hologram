@@ -5,14 +5,14 @@
     "url": "https://github.com/akaieuan"
   },
   "metadata": {
-    "description": "Live observability, guided skills, and a read-only MCP surface for Blender -> glTF pipelines.",
+    "description": "Live observability, guided skills, and a non-destructive MCP surface for Blender -> glTF pipelines.",
     "version": "0.5.0"
   },
   "plugins": [
     {
       "name": "hologram",
       "source": "./hologram/plugin",
-      "description": "Streams Claude Code activity to the hologram dashboard and exposes a read-only MCP surface for glTF assets (list_assets, inspect_asset, render_asset, tail_events, pipeline_status), plus guided skills (/hologram:start, inspect, check, status, create-skill) as the front door. The MCP server launches via uvx, so installing the plugin needs no pip step.",
+      "description": "Streams Claude Code activity to the hologram dashboard and exposes an MCP surface for glTF assets — four read-only tools (list_assets, inspect_asset, tail_events, pipeline_status) plus a non-destructive render_asset — with guided skills (/hologram:start, inspect, check, status, create-skill) as the front door. The MCP server launches via uvx, so installing the plugin needs no pip step.",
       "version": "0.5.0",
       "author": { "name": "Ieuan King" },
       "homepage": "https://github.com/akaieuan/Hologram",

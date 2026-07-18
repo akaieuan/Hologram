@@ -15,9 +15,11 @@ def test_humanize_bash_success_vs_failure():
 
 def test_humanize_edit_and_write_verbs():
     assert watch.humanize({"tool": "Edit", "file_path": "a.py"})[0] == "edited a.py"
-    assert watch.humanize({"tool": "Edit", "file_path": "a.py", "failed": True})[0] == "failed to edit a.py"
+    failed_edit = watch.humanize({"tool": "Edit", "file_path": "a.py", "failed": True})
+    assert failed_edit[0] == "failed to edit a.py"
     assert watch.humanize({"tool": "Write", "file_path": "a.glb"})[0] == "wrote a.glb"
-    assert watch.humanize({"tool": "Write", "file_path": "a.glb", "failed": True})[0] == "failed to write a.glb"
+    failed_write = watch.humanize({"tool": "Write", "file_path": "a.glb", "failed": True})
+    assert failed_write[0] == "failed to write a.glb"
 
 
 def test_humanize_mcp_strips_prefix_and_joins_params():

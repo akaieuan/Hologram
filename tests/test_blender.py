@@ -16,7 +16,6 @@ from contextlib import contextmanager
 
 from hologram import blender
 
-
 # ── fakes ─────────────────────────────────────────────────────────────────────
 
 def _free_port() -> int:

@@ -20,11 +20,14 @@ const state = {
 // ── Helpers ──────────────────────────────────────────────────────────
 
 function sessionColor(sid) {
-  // Darker, low-saturation hues so session tags stay legible on light paper.
-  if (!sid) return { hex: "#5b626b" };
+  // Hash the session id to a stable hue, then set lightness/saturation per
+  // theme so tags stay legible on both warm paper and warm near-black.
+  const dark = document.documentElement.getAttribute("data-theme") === "dark";
+  if (!sid) return { hex: dark ? "#93928f" : "#64635e" };
   let h = 0;
   for (let i = 0; i < sid.length; i++) h = (h * 31 + sid.charCodeAt(i)) >>> 0;
-  return { hex: `hsl(${h % 360}, 45%, 42%)` };
+  const [s, l] = dark ? [52, 66] : [48, 40];
+  return { hex: `hsl(${h % 360}, ${s}%, ${l}%)` };
 }
 function shortSid(sid) {
   if (!sid) return "—";
@@ -151,6 +154,11 @@ $("#theme-toggle")?.addEventListener("click", () => {
   const next = cur === "dark" ? "light" : "dark";
   document.documentElement.setAttribute("data-theme", next);
   try { localStorage.setItem("hologram-theme", next); } catch (e) { /* private mode */ }
+  // Session colours are hashed to inline hex per theme — redraw so the tags
+  // pick up the new theme's lightness instead of keeping stale values.
+  renderSummary();
+  renderFeed();
+  if (state.view === "assets") renderAssets();
 });
 
 // ── Live status popover ──────────────────────────────────────────────
