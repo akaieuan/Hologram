@@ -24,6 +24,22 @@ to adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **PyPI release pipeline.** A tag-triggered (`v*`) workflow builds an sdist and
   wheel with `uv build` and publishes via PyPI Trusted Publishing (OIDC) — no
   API-token secrets in the repository.
+- **Golden truths.** An optional, human-edited `golden.json` (project root,
+  `codex/`, or the export root) declares per-category triangle budgets and a
+  golden-thumbnail directory with a max visual diff; `hologram check` enforces
+  both automatically when the file is present — tri counts against budgets, and
+  thumbnail drift via a stdlib PNG reader. Hologram never writes the goldens.
+- **Prebuilt skill pack.** Five general-purpose Blender-process skills ship with
+  the plugin: `blender-sim` (Blender 5.2 XPBD cheat sheet), `pose-authoring`
+  (IK → bake → persist-FK workflow), `glb-standards` (socket and convention
+  authoring, enforced via checks), and the `asset-audit` / `asset-gate` review
+  pair — the gate stamps `pending-review` / `gate-failed` into the manifest and
+  appends to an append-only `activity.jsonl`, with approval always reserved for
+  a human. A long-form Blender 5.2 research digest lands in `docs/research/`.
+- **Codex dashboard.** A Skills tab renders the installed skill registry (from
+  each skill's frontmatter — never a hand-maintained list), and asset
+  provenance reads triangle counts against golden budgets with review-state
+  pills, turning the dashboard into the project's knowledge surface.
 
 ### Changed
 
