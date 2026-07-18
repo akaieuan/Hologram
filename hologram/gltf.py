@@ -102,6 +102,8 @@ def load_asset(path: str) -> Asset:
         raise ImportError("pygltflib is required. Install with: pip install hologram") from e
 
     gltf = GLTF2().load(path)
+    if gltf is None:  # pygltflib returns None for an unreadable/empty file
+        raise ValueError(f"could not parse glTF: {path}")
     filename = os.path.basename(path)
     stem, _ = os.path.splitext(filename)
 
