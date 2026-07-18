@@ -498,10 +498,12 @@ function manifestHtml(entry) {
       ? mrow("tris", `<span class="${b.over ? "budget-over" : "budget-ok"}">${esc(tris)} / ${esc(Number(b.budget).toLocaleString())}</span>`)
       : mrow("tris", esc(tris)));
   }
-  const review = m.review && m.review.status;
-  if (review) {
-    const cls = review === "gate-failed" ? "bad" : (review === "approved" ? "good" : "pend");
-    rows.push(mrow("review", `<span class="review-pill ${cls}">${esc(review)}</span>${m.review.version != null ? ` <span class="muted">v${esc(m.review.version)}</span>` : ""}`));
+  // The gate skill stamps `review` into the manifest record; the reader
+  // surfaces convention-extra keys under `extra`, so look in both places.
+  const rv = m.review || (m.extra && m.extra.review);
+  if (rv && rv.status) {
+    const cls = rv.status === "gate-failed" ? "bad" : (rv.status === "approved" ? "good" : "pend");
+    rows.push(mrow("review", `<span class="review-pill ${cls}">${esc(rv.status)}</span>${rv.version != null ? ` <span class="muted">v${esc(rv.version)}</span>` : ""}`));
   }
   if (m.status) rows.push(mrow("status", esc(m.status)));
   if (m.updated_at) rows.push(mrow("updated", esc(m.updated_at)));
