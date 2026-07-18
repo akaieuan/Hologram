@@ -65,7 +65,10 @@
       <span class="muted">no sessions active</span>
     </div>
     <section class="feed-section">
-      <h2 class="feed-title">Activity</h2>
+      <div class="feed-head">
+        <h2 class="feed-title">Activity</h2>
+        <input type="search" id="feed-search" class="input feed-search" placeholder="filter activity…" aria-label="Filter activity feed" />
+      </div>
       <div id="feed" class="feed" role="log" aria-live="polite" aria-label="Activity feed">
         <div class="feed-empty">
           <p>No activity yet.</p>

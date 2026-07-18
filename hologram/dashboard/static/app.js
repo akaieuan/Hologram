@@ -8,6 +8,7 @@ const state = {
   events: [],
   assetFilter: "",
   catFilter: "",
+  feedFilter: "",       // client-side activity-feed search
   sse: null,
   view: "live",
   blenderMcp: null,
@@ -115,6 +116,16 @@ function humanize(ev) {
 function shouldShow(ev) {
   if (ev.phase === "pre") return ev.type === "skill_invoke";
   return true;
+}
+
+// Plain-text haystack for the activity-feed search — the humanized line (tags
+// stripped) plus the raw fields a user is likely to grep for.
+function eventHaystack(ev) {
+  const { text, sub } = humanize(ev);
+  const plain = String(text).replace(/<[^>]*>/g, "");
+  return [plain, sub, ev.session_id, ev.tool, ev.mcp_tool, ev.type,
+    ev.command, ev.file_path, ev.skill, ev.args, ev.detail, ev.error]
+    .filter(Boolean).join(" ").toLowerCase();
 }
 
 function touchedAssets(ev) {
@@ -309,8 +320,15 @@ function renderSummary() {
 
 function renderFeed() {
   const root = $("#feed");
-  const visible = state.events.filter(shouldShow);
+  const shown = state.events.filter(shouldShow);
+  const q = (state.feedFilter || "").trim().toLowerCase();
+  const visible = q ? shown.filter(ev => eventHaystack(ev).includes(q)) : shown;
   if (visible.length === 0) {
+    if (q && shown.length) {
+      root.innerHTML = `<div class="feed-empty"><p>No activity matches “${esc(state.feedFilter.trim())}”.</p>
+        <p class="muted">Clear the filter to see all ${shown.length} recent events.</p></div>`;
+      return;
+    }
     root.innerHTML = `<div class="feed-empty"><p>No activity yet.</p>
       <p class="muted">Call the MCP tools, load the hologram plugin in Claude Code, or append to the event log — activity streams here live.</p></div>`;
     return;
@@ -422,6 +440,8 @@ function renderStage(cat, entry) {
       <div class="stage-cat">${esc(cat)}</div>
     </div>
     ${previewHtml(entry)}
+    ${manifestHtml(entry)}
+    <div class="stage-versions" id="stage-versions"></div>
     <div class="stage-details" id="stage-details">
       <div class="muted" style="padding:var(--space-4) 0">${entry.glb ? "inspecting…" : "not exported — no GLB to inspect"}</div>
     </div>`;
@@ -443,6 +463,117 @@ function renderStage(cat, entry) {
     }
     det.innerHTML = checksHtml(c) + diffHtml(d) + inspectHtml(d);
   });
+
+  // Version history is an explogo-convention extra: only fetch it when the
+  // asset carries a manifest record (asset id == GLB stem == entry.name).
+  if (entry.manifest) {
+    fetch(`/api/history?asset=${encodeURIComponent(entry.name)}`)
+      .then(r => r.json())
+      .then(hd => { if (state.stageKey === key && !hd.error) renderVersions(entry.name, hd); })
+      .catch(() => { /* history is optional — the stage still stands without it */ });
+  }
+}
+
+// ── Manifest provenance (explogo export convention) ──────────────────
+// When /api/state enriched this asset with its manifest record, surface the
+// provenance the pipeline recorded: version, generator, tri count, params, and
+// the rendered thumbnail. Absent manifest → returns "" (no block, no change).
+
+function manifestHtml(entry) {
+  const m = entry.manifest;
+  if (!m) return "";
+  const mrow = (k, v) => `<div class="row"><span class="k">${k}</span><span class="v">${v}</span></div>`;
+  const rows = [];
+  if (m.version != null) rows.push(mrow("version", `v${esc(m.version)}`));
+  if (m.generator) rows.push(mrow("generator", `<code>${esc(m.generator)}</code>`));
+  if (m.tris != null) rows.push(mrow("tris", esc(Number(m.tris).toLocaleString())));
+  if (m.status) rows.push(mrow("status", esc(m.status)));
+  if (m.updated_at) rows.push(mrow("updated", esc(m.updated_at)));
+  const thumb = m.thumbnail
+    ? `<img class="asset-thumb" alt="thumbnail for ${esc(entry.name)}" loading="lazy"
+         src="/api/thumb?asset=${encodeURIComponent(entry.name)}" />`
+    : "";
+  return `<div class="provenance">
+      <h4>manifest</h4>
+      <div class="prov-body">
+        ${thumb}
+        <div class="prov-rows">${rows.join("")}</div>
+      </div>
+      ${paramsHtml(m.params)}
+    </div>`;
+}
+
+function paramsHtml(params) {
+  if (!params || typeof params !== "object" || !Object.keys(params).length) return "";
+  const rows = Object.entries(params).map(([k, v]) => {
+    const val = (v !== null && typeof v === "object") ? JSON.stringify(v) : String(v);
+    return `<div class="param-row"><span class="param-k">${esc(k)}</span><span class="param-v">${esc(val)}</span></div>`;
+  }).join("");
+  const n = Object.keys(params).length;
+  return `<details class="params">
+      <summary>params <span class="param-count">${n}</span></summary>
+      <div class="param-list">${rows}</div>
+    </details>`;
+}
+
+// ── Version history flip-through ─────────────────────────────────────
+// Snapshots come from .history/<asset>/vN.glb. Selecting one introspects that
+// snapshot and diffs its fingerprint against the current export (reusing the
+// same diff machinery as the regression baseline). Read-only throughout.
+
+function renderVersions(assetId, data) {
+  const box = $("#stage-versions");
+  if (!box) return;
+  const versions = data.versions || [];
+  if (!versions.length) { box.innerHTML = ""; return; }
+  const cur = data.current_version;
+  const chips = versions.slice().reverse().map(v =>
+    `<button type="button" class="version-chip" data-v="${esc(v)}">v${esc(v)}</button>`
+  ).join("");
+  box.innerHTML = `<div class="versions-block">
+      <h4>version history</h4>
+      <div class="versions-meta">
+        <span class="versions-current">current · v${esc(cur ?? "?")}</span>
+        <span class="versions-count">${versions.length} snapshot${versions.length === 1 ? "" : "s"}</span>
+      </div>
+      <div class="versions-chips">${chips}</div>
+      <div class="version-detail" id="version-detail"></div>
+    </div>`;
+  box.querySelectorAll(".version-chip").forEach(btn =>
+    btn.addEventListener("click", () => selectVersion(assetId, btn.dataset.v, btn)));
+}
+
+function selectVersion(assetId, v, btn) {
+  const detail = $("#version-detail");
+  if (!detail) return;
+  $$("#stage-versions .version-chip").forEach(b => b.classList.toggle("selected", b === btn));
+  detail.innerHTML = `<div class="muted" style="padding:var(--space-3) 0">loading v${esc(v)}…</div>`;
+  const keyAtFetch = state.stageKey;
+  fetch(`/api/history?asset=${encodeURIComponent(assetId)}&v=${encodeURIComponent(v)}`)
+    .then(r => r.json())
+    .then(d => {
+      if (state.stageKey !== keyAtFetch) return;  // selection moved on
+      if (d.error) { detail.innerHTML = `<div class="finding err"><div class="msg">${esc(d.error)}</div></div>`; return; }
+      detail.innerHTML = versionDiffHtml(d) + inspectHtml(d.inspect || {});
+    })
+    .catch(() => { detail.innerHTML = `<div class="finding err"><div class="msg">history fetch failed</div></div>`; });
+}
+
+function versionDiffHtml(d) {
+  const from = d.compared_from || `v${d.version}`;
+  const to = d.compared_to || "current";
+  const head = `<div class="diff-head">${esc(from)} → ${esc(to)}</div>`;
+  const dd = d.diff;
+  if (dd == null) return `<div class="diff-block">${head}<div class="diff-row">${esc(d.note || "nothing to compare against")}</div></div>`;
+  const rows = [];
+  for (const [field, names] of Object.entries(dd.gained || {}))
+    rows.push(`<div class="diff-row gained"><span class="diff-sign">+</span><b>${esc(field)}</b> · ${esc(names.join(", "))}</div>`);
+  for (const [field, names] of Object.entries(dd.lost || {}))
+    rows.push(`<div class="diff-row lost"><span class="diff-sign">−</span><b>${esc(field)}</b> · ${esc(names.join(", "))}</div>`);
+  for (const [name, delta] of Object.entries(dd.changed || {}))
+    rows.push(`<div class="diff-row changed"><b>${esc(name)}</b> · ${esc(String(delta.from))} → ${esc(String(delta.to))}</div>`);
+  const body = rows.length ? rows.join("") : `<div class="diff-row">identical fingerprint — no structural change</div>`;
+  return `<div class="diff-block">${head}${body}</div>`;
 }
 
 // "Changes since last check" — present only when /api/inspect attached a diff
@@ -584,6 +715,7 @@ document.addEventListener("click", e => {
 
 $("#asset-filter").addEventListener("input", e => { state.assetFilter = e.target.value; renderAssets(); });
 $("#cat-filter").addEventListener("change", e => { state.catFilter = e.target.value; renderAssets(); });
+$("#feed-search")?.addEventListener("input", e => { state.feedFilter = e.target.value; renderFeed(); });
 
 // ── Fetching ────────────────────────────────────────────────────────
 
