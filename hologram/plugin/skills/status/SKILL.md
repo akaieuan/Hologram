@@ -2,6 +2,7 @@
 name: Hologram pipeline status
 description: Answer "what's wrong right now" from Hologram's event log alone — recent failures, the last check summary, and assets that changed since their last checkpoint. Fast, read-only, works without Blender. Use when someone says "what's the status", "what's broken", "catch me up", "what changed", "what has the agent been doing", or "is anything failing".
 allowed-tools: mcp__hologram__pipeline_status, mcp__hologram__tail_events
+kind: lifecycle
 ---
 
 # Hologram pipeline status

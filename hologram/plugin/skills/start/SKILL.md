@@ -2,6 +2,7 @@
 name: Get started with Hologram
 description: Onboard to Hologram — explain what it is, scaffold the project if it isn't set up, launch the live dashboard, and hand off to the other Hologram skills and MCP tools. Use when someone asks "what is hologram", "set up hologram", "get started with hologram", "open the hologram dashboard", or is touching a Blender → glTF asset pipeline in this repo for the first time.
 allowed-tools: Bash(hologram *), Glob, Read
+kind: lifecycle
 ---
 
 # Get started with Hologram

@@ -2,6 +2,7 @@
 name: Check the Hologram pipeline
 description: Run Hologram's read-only checks over the exported assets and explain the results — which assets are clean, which warn or error, and what to do about each. Also helps author custom checks. Use when someone says "check the assets", "validate my exports", "run hologram check", "are my GLBs okay", "what's failing", or wants to add a validation rule.
 allowed-tools: Bash(hologram *), Read, Write
+kind: audit
 ---
 
 # Check the Hologram pipeline
