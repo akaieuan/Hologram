@@ -20,7 +20,6 @@ from hologram.checks import (
     BUILTIN_CHECKS,
     Check,
     Finding,
-    Result,
     all_checks,
     check,
     discover_checks,

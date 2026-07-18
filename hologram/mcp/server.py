@@ -22,7 +22,6 @@ from __future__ import annotations
 import time
 import uuid
 from pathlib import Path
-from typing import Optional
 
 from .. import blender, events
 from ..config import Config, load_config
@@ -56,7 +55,7 @@ def _emit(action: str, detail: str = "", **extra) -> None:
 
 # ── Tool logic (plain functions; easy to unit-test) ────────────────────────────
 
-def _list_assets(category: Optional[str] = None) -> dict:
+def _list_assets(category: str | None = None) -> dict:
     cfg = _cfg()
     by_cat = cfg.list_glbs(category)
     result: dict[str, list[dict]] = {}
@@ -115,7 +114,7 @@ def _pipeline_status(limit: int = 200, max_items: int = 10) -> dict:
     evs = events.tail(cfg.events_log, limit=limit)  # newest first
     failures: list[dict] = []
     recent_diffs: list[dict] = []
-    last_check: Optional[dict] = None
+    last_check: dict | None = None
     for ev in evs:
         t = ev.get("type")
         if t == "tool_use" and ev.get("failed"):
@@ -199,7 +198,7 @@ mcp = FastMCP("hologram")
 
 
 @mcp.tool()
-def list_assets(category: Optional[str] = None) -> dict:
+def list_assets(category: str | None = None) -> dict:
     """List exported GLB assets, grouped by the categories defined in hologram.toml.
 
     Args:

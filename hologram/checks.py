@@ -34,9 +34,10 @@ Authoring a check::
 from __future__ import annotations
 
 import importlib.util
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from .config import Config
 from .gltf import Asset, load_asset
@@ -110,8 +111,8 @@ class Check:
     func: CheckFn
 
     @classmethod
-    def from_func(cls, func: CheckFn) -> "Check":
-        meta = getattr(func, "__hologram_check__")
+    def from_func(cls, func: CheckFn) -> Check:
+        meta = func.__hologram_check__
         return cls(name=meta["name"], severity=meta["severity"], func=func)
 
 

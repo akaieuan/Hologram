@@ -24,7 +24,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from .. import __version__, blender, events
@@ -35,7 +35,7 @@ HERE = Path(__file__).resolve().parent
 STATIC_DIR = HERE / "static"
 
 # Set once by run() before serving; the handler reads it (read-only across threads).
-CONFIG: Optional[Config] = None
+CONFIG: Config | None = None
 
 BLENDER_MCP_HOST = os.environ.get("BLENDER_MCP_HOST", "127.0.0.1")
 BLENDER_MCP_PORT = int(os.environ.get("BLENDER_MCP_PORT", "9876"))
@@ -269,7 +269,8 @@ class Handler(BaseHTTPRequestHandler):
             # Read-only regression diff against the last `hologram check`
             # baseline. We read the snapshot but never write it, so this GET
             # stays side-effect-free (the checkpoint is an explicit check run).
-            from ..diff import diff as compute_diff, load_snapshot, summarize
+            from ..diff import diff as compute_diff
+            from ..diff import load_snapshot, summarize
             prev = load_snapshot(self.cfg, resolved)
             if prev:
                 changes = compute_diff(prev, summarize(asset))
@@ -277,7 +278,8 @@ class Handler(BaseHTTPRequestHandler):
                     data["diff"] = changes
             self._send_json(data)
         except Exception as e:
-            self._send_json({"error": f"{type(e).__name__}: {e}", "path": self.cfg.rel(resolved)}, status=500)
+            self._send_json({"error": f"{type(e).__name__}: {e}",
+                             "path": self.cfg.rel(resolved)}, status=500)
 
     def _checks(self, p: str) -> None:
         """Run the built-in + project checks against one asset. Reuses the
@@ -300,7 +302,8 @@ class Handler(BaseHTTPRequestHandler):
                 "load_error": load_error,
             })
         except Exception as e:
-            self._send_json({"error": f"{type(e).__name__}: {e}", "path": self.cfg.rel(resolved)}, status=500)
+            self._send_json({"error": f"{type(e).__name__}: {e}",
+                             "path": self.cfg.rel(resolved)}, status=500)
 
     def _glb(self, p: str) -> None:
         """Stream raw GLB bytes for the web preview. Shares resolve_asset with
@@ -338,7 +341,7 @@ class Handler(BaseHTTPRequestHandler):
         init = events.tail(cfg.events_log, limit=50)
         try:
             self.wfile.write(b"event: init\n")
-            self.wfile.write(f"data: {json.dumps({'events': init})}\n\n".encode("utf-8"))
+            self.wfile.write(f"data: {json.dumps({'events': init})}\n\n".encode())
             self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError):
             return
@@ -351,7 +354,7 @@ class Handler(BaseHTTPRequestHandler):
                 if new:
                     for ev in new:
                         self.wfile.write(b"event: append\n")
-                        self.wfile.write(f"data: {json.dumps(ev)}\n\n".encode("utf-8"))
+                        self.wfile.write(f"data: {json.dumps(ev)}\n\n".encode())
                     self.wfile.flush()
                 else:
                     self.wfile.write(b": ping\n\n")
@@ -362,7 +365,7 @@ class Handler(BaseHTTPRequestHandler):
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
-def run(host: Optional[str] = None, port: Optional[int] = None, project: Optional[str] = None) -> int:
+def run(host: str | None = None, port: int | None = None, project: str | None = None) -> int:
     global CONFIG
     cfg = load_config(project)
     CONFIG = cfg

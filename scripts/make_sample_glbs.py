@@ -151,7 +151,8 @@ def build_glb(
 
         animations.append(Animation(
             name="Bob",
-            samplers=[AnimationSampler(input=time_accessor, output=out_accessor, interpolation="LINEAR")],
+            samplers=[AnimationSampler(input=time_accessor, output=out_accessor,
+                                       interpolation="LINEAR")],
             channels=[AnimationChannel(
                 sampler=0,
                 target={"node": animated_node, "path": "translation"},
