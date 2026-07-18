@@ -16,6 +16,8 @@ const state = {
   stageKey: null,      // key currently rendered in the stage (guards model reload)
   active: [],          // in-flight tool calls (from /api/active)
   live: { status: "connecting", label: "connecting" },
+  skills: null,        // plugin skill registry (from /api/skills; null until fetched)
+  golden: null,        // golden truths + per-asset budgets (from /api/golden)
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -153,6 +155,7 @@ $$(".tab").forEach(btn => {
     $$(".view").forEach(el => el.classList.toggle("active", el.id === `view-${v}`));
     if (v === "debug") renderDebug();
     if (v === "assets") renderAssets();
+    if (v === "skills") renderSkills();
   });
 });
 
@@ -486,7 +489,20 @@ function manifestHtml(entry) {
   const rows = [];
   if (m.version != null) rows.push(mrow("version", `v${esc(m.version)}`));
   if (m.generator) rows.push(mrow("generator", `<code>${esc(m.generator)}</code>`));
-  if (m.tris != null) rows.push(mrow("tris", esc(Number(m.tris).toLocaleString())));
+  if (m.tris != null) {
+    // With a golden.json present the tri count reads against its budget —
+    // "12,400 / 30,000" — and goes red when the asset is over.
+    const b = state.golden?.budgets?.[entry.name];
+    const tris = Number(m.tris).toLocaleString();
+    rows.push(b && b.budget != null
+      ? mrow("tris", `<span class="${b.over ? "budget-over" : "budget-ok"}">${esc(tris)} / ${esc(Number(b.budget).toLocaleString())}</span>`)
+      : mrow("tris", esc(tris)));
+  }
+  const review = m.review && m.review.status;
+  if (review) {
+    const cls = review === "gate-failed" ? "bad" : (review === "approved" ? "good" : "pend");
+    rows.push(mrow("review", `<span class="review-pill ${cls}">${esc(review)}</span>${m.review.version != null ? ` <span class="muted">v${esc(m.review.version)}</span>` : ""}`));
+  }
   if (m.status) rows.push(mrow("status", esc(m.status)));
   if (m.updated_at) rows.push(mrow("updated", esc(m.updated_at)));
   const thumb = m.thumbnail
@@ -676,6 +692,76 @@ function previewHtml(entry) {
       ><div class="preview-msg" slot="poster">loading model…</div></model-viewer></div>`;
 }
 
+// ── Skills registry (the codex: what the plugin can do) ──────────────
+// Read-only view over /api/skills — the bundled plugin skills, grouped by
+// kind. The registry derives from each SKILL.md's frontmatter, so this list
+// is always exactly what's installed, never a hand-maintained copy.
+
+const SKILL_KIND_ORDER = ["lifecycle", "workflow", "audit", "gate", "reference"];
+const SKILL_KIND_BLURB = {
+  lifecycle: "starting, stopping, and catching up",
+  workflow: "guided multi-step processes",
+  audit: "read-only conformance sweeps",
+  gate: "readying work for human review",
+  reference: "quick-lookup knowledge",
+};
+
+function renderSkills() {
+  const root = $("#skills-list");
+  if (!root) return;
+  if (state.skills == null) { fetchSkills(); return; }
+  const skills = state.skills;
+  if (!skills.length) {
+    root.innerHTML = `<div class="muted" style="padding: var(--space-5) 0">No skills found — is the plugin bundled with this install?</div>`;
+    return;
+  }
+  const byKind = new Map();
+  for (const s of skills) {
+    const k = SKILL_KIND_ORDER.includes(s.kind) ? s.kind : "workflow";
+    if (!byKind.has(k)) byKind.set(k, []);
+    byKind.get(k).push(s);
+  }
+  let html = "";
+  for (const kind of SKILL_KIND_ORDER) {
+    const group = byKind.get(kind);
+    if (!group) continue;
+    html += `<section class="skill-group">
+        <div class="skill-group-head">${esc(kind)}
+          <span class="skill-group-blurb">${esc(SKILL_KIND_BLURB[kind] || "")}</span>
+        </div>` +
+      group.map(s => `
+        <article class="skill-row">
+          <div class="skill-row-top">
+            <code class="skill-trigger">${esc(s.trigger)}</code>
+            <span class="skill-name">${esc(s.name)}</span>
+          </div>
+          <p class="skill-desc">${esc(s.description)}</p>
+        </article>`).join("") +
+      `</section>`;
+  }
+  root.innerHTML = html;
+}
+
+async function fetchSkills() {
+  try {
+    const d = await (await fetch("/api/skills")).json();
+    state.skills = d.skills || d || [];
+  } catch (e) {
+    state.skills = [];
+  }
+  const badge = $("#tab-skills-count");
+  if (badge) badge.textContent = state.skills.length || "";
+  if (state.view === "skills") renderSkills();
+}
+
+async function fetchGolden() {
+  try {
+    const d = await (await fetch("/api/golden")).json();
+    state.golden = d && d.present ? d : null;
+  } catch (e) { /* optional — assets view just shows plain tri counts */ }
+  if (state.view === "assets") renderAssets();
+}
+
 // ── Debug ───────────────────────────────────────────────────────────
 
 function renderDebug() {
@@ -809,7 +895,10 @@ fetchState();
 fetchEvents();
 fetchBlenderMcp();
 fetchActive();
+fetchSkills();
+fetchGolden();
 connectSSE();
 setInterval(() => fetchState(false), 15000);
 setInterval(fetchBlenderMcp, 5000);
 setInterval(fetchActive, 2000);
+setInterval(fetchGolden, 60000); // goldens are human-edited; a slow refresh is plenty

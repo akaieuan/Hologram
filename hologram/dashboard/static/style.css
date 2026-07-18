@@ -1183,3 +1183,93 @@ details.params[open] > summary::before { content: "▾"; }
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+
+/* ── Skills registry (codex) ─────────────────────────────────────────
+ * The Skills tab renders the bundled plugin skills grouped by kind —
+ * same editorial-row language as the asset list: quiet group heads,
+ * mono for the machine-facing trigger, prose for the human description. */
+
+.skills-intro {
+  max-width: 62ch;
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 0 0 var(--space-5);
+}
+
+.skill-group { margin-bottom: var(--space-6); }
+
+.skill-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  padding: 0 2px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+
+.skill-group-blurb {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 12px;
+}
+
+.skill-row {
+  padding: var(--space-4) 2px;
+  border-bottom: 1px solid var(--border);
+}
+.skill-row:last-child { border-bottom: none; }
+
+.skill-row-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.skill-trigger {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.skill-name {
+  font-size: 13.5px;
+  font-weight: 550;
+  color: var(--foreground);
+}
+
+.skill-desc {
+  margin: 6px 0 0;
+  max-width: 74ch;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--foreground-2);
+}
+
+/* ── Golden budgets + review states on the asset stage ──────────────── */
+
+.budget-ok { color: var(--good); }
+.budget-over { color: var(--bad); font-weight: 600; }
+
+.review-pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+}
+.review-pill.pend { color: var(--warn); border-color: currentColor; }
+.review-pill.bad  { color: var(--bad);  border-color: currentColor; }
+.review-pill.good { color: var(--good); border-color: currentColor; }
