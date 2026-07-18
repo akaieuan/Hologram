@@ -1,0 +1,18 @@
+[project]
+name = "manifest-fixture"
+
+[paths]
+# Exports live under an explogo-style `exports/` dir: the sidecar manifest.json,
+# audit.jsonl, and .history/ snapshots all sit at the export root.
+export_root = "exports"
+events_log = ".hologram/events.jsonl"
+
+[dashboard]
+host = "127.0.0.1"
+port = 7871
+
+[categories.characters]
+glb_pattern = "characters/**/*.glb"
+
+[categories.items]
+glb_pattern = "items/**/*.glb"

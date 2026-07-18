@@ -1,0 +1,48 @@
+{
+  "assets": {
+    "coin": {
+      "category": "items",
+      "createdAt": "2026-07-04T14:28:37-04:00",
+      "generator": "pipeline/items/coin.py",
+      "glb": "items/coin.glb",
+      "id": "coin",
+      "name": "Coin",
+      "params": {
+        "accent": "amber",
+        "pips": 4,
+        "size": 0.34
+      },
+      "status": "pending-review",
+      "thumbnail": null,
+      "tris": 1200,
+      "updatedAt": "2026-07-05T09:12:00-04:00",
+      "version": 1
+    },
+    "hero": {
+      "category": "characters",
+      "createdAt": "2026-07-04T12:01:26-04:00",
+      "generator": "pipeline/characters/hero.py",
+      "glb": "characters/hero.glb",
+      "id": "hero",
+      "name": "Hero",
+      "params": {
+        "body_color": "white",
+        "effects": {
+          "jump_mult": 1.45
+        },
+        "forward": [
+          0,
+          0,
+          1
+        ],
+        "height": 0.9,
+        "rig": "biped"
+      },
+      "status": "pending-review",
+      "thumbnail": "thumbnails/hero.v3.png",
+      "tris": 3000,
+      "updatedAt": "2026-07-07T11:31:18-04:00",
+      "version": 3
+    }
+  }
+}
