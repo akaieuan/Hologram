@@ -1,13 +1,15 @@
-# ◇ hologram
+# ◇ Hologram
 
 **Live observability, guided skills, and an agent (MCP) surface for Blender → glTF pipelines.**
 
 ![status](https://img.shields.io/badge/status-v0.5.0-blue)
 ![python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![license](https://img.shields.io/badge/license-MIT-green)
-![MCP](https://img.shields.io/badge/MCP-read--only-6E56CF?logo=anthropic&logoColor=white)
+![MCP](https://img.shields.io/badge/MCP-non--destructive-6E56CF?logo=anthropic&logoColor=white)
 ![Blender](https://img.shields.io/badge/Blender-glTF-F5792A?logo=blender&logoColor=white)
 ![build](https://img.shields.io/badge/build-none-success)
+
+Part of akaOSS — https://www.akaoss.dev/projects/hologram
 
 Hologram watches a glTF asset pipeline and streams what's happening to a local
 dashboard in real time — including the tool calls your AI coding agent is making
@@ -44,7 +46,7 @@ to reconstruct which step touched which file.
 Hologram is what I built to close that gap. It tails a single event log and
 shows the agent's live activity — edits, shell commands, exports — right next
 to the assets those actions produce, in one local dashboard. Then it hands the
-agent that same pipeline back as a few read-only MCP tools, so we end up looking
+agent that same pipeline back as a few MCP tools, so we end up looking
 at the same picture instead of talking past each other.
 
 It started life as pipeline-specific glue buried inside one game's repo. This is
@@ -60,9 +62,9 @@ else wiring an agent into a Blender → glTF workflow.
   work included.
 - **Asset visualizer** — browse exported GLBs grouped by category, click any one
   to introspect its glTF structure, and see an in-browser preview of the model.
-- **MCP tool surface** — five read-only tools (`list_assets`, `inspect_asset`,
-  `render_asset`, `tail_events`, `pipeline_status`) give an agent structured
-  access to your pipeline.
+- **MCP tool surface** — four read-only tools (`list_assets`, `inspect_asset`,
+  `tail_events`, `pipeline_status`) plus one non-destructive `render_asset` give
+  an agent structured access to your pipeline.
 - **Guided skills** — the plugin bundles five Claude Code skills as a
   natural-language front door: `/hologram:start` (onboard + launch the dashboard),
   `inspect`, `check`, `status`, and `create-skill` (scaffold your own).
@@ -123,8 +125,8 @@ Claude Code:
 ```
 
 That wires up three things: the **activity hook** (your agent's edits, shell
-commands, and MCP calls stream into the dashboard), the five read-only
-**MCP tools**, and a set of guided **skills** (`/hologram:start` and friends).
+commands, and MCP calls stream into the dashboard), the **MCP tools** (four
+read-only plus a non-destructive render), and a set of guided **skills** (`/hologram:start` and friends).
 The MCP server runs through `uvx` too — installing the plugin needs no `pip` step.
 
 ### Commands
@@ -156,7 +158,7 @@ Hologram is four pieces, and each reaches you without a manual install:
 | Piece | What it is | How it runs |
 |---|---|---|
 | **Activity hook** | a stdlib-only Claude Code hook logging sessions, shell commands, edits, and MCP calls | bundled in the plugin; runs on your system `python3`, zero dependencies |
-| **MCP server** | five read-only tools over your GLBs | launched by `uvx` straight from this repo — Claude Code starts it per session |
+| **MCP server** | four read-only tools + a non-destructive render over your GLBs | launched by `uvx` straight from this repo — Claude Code starts it per session |
 | **Skills** | five guided Claude Code skills (`start`, `inspect`, `check`, `status`, `create-skill`) | bundled in the plugin; auto-discovered, no install |
 | **Dashboard** | the live SSE web UI | a server you start with `uvx hologram dashboard` |
 
@@ -318,7 +320,7 @@ live Blender ──(socket :9876)── render_asset ─> PNG
 - **`hologram/blender.py`** — stdlib socket client for the Blender MCP add-on
   (liveness probe + the non-destructive render).
 - **`hologram/dashboard/`** — stdlib `ThreadingHTTPServer` + SSE + vanilla JS.
-- **`hologram/mcp/`** — `FastMCP` server with the five read-only tools.
+- **`hologram/mcp/`** — `FastMCP` server: four read-only tools + a non-destructive render.
 
 ## Project layout
 
