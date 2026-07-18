@@ -121,7 +121,7 @@ uvx --from git+https://github.com/akaieuan/Hologram hologram dashboard
 ```
 
 It serves **http://127.0.0.1:7870**. (Once Hologram is on PyPI this shortens to
-`uvx hologram dashboard`.)
+`uvx --from hologram-gltf hologram dashboard`.)
 
 **2 · The Claude Code plugin** — the live activity feed + MCP tools. Inside
 Claude Code:
@@ -167,7 +167,7 @@ Hologram is four pieces, and each reaches you without a manual install:
 | **Activity hook** | a stdlib-only Claude Code hook logging sessions, shell commands, edits, and MCP calls | bundled in the plugin; runs on your system `python3`, zero dependencies |
 | **MCP server** | four read-only tools + a non-destructive render over your GLBs | launched by `uvx` straight from this repo — Claude Code starts it per session |
 | **Skills** | five guided Claude Code skills (`start`, `inspect`, `check`, `status`, `create-skill`) | bundled in the plugin; auto-discovered, no install |
-| **Dashboard** | the live SSE web UI | a server you start with `uvx hologram dashboard` |
+| **Dashboard** | the live SSE web UI | a server you start with `uvx hologram dashboard` (from a clone or, once published, `--from hologram-gltf`) |
 
 `uv` downloads the code (and a matching Python) the first time and caches it, so
 there's no release to download and no environment to maintain. The marketplace
